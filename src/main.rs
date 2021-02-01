@@ -9,12 +9,15 @@ fn main() {
   * "item 1"
   * "item 2"
 - key: "value"
+- list:
+  * "item 1"
+  * "item 2"
 "#);
     let mut scanner = Scanner::new(text.chars());
 
     let tokens = scanner.scan();
 
-    println!("{:?}", text);
+    println!("{}", text);
     println!("{:?}", tokens);
 
 

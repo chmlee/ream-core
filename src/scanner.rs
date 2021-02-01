@@ -41,6 +41,8 @@ pub struct Scanner<T: Iterator<Item = char>>  {
     pub tokens: Vec<Token>,
 
     pub marker: Marker,
+    pub allow_list: bool,
+    pub list_has_item: bool,
 
 }
 
@@ -83,6 +85,11 @@ impl<T: Iterator<Item = char>> Scanner<T> {
             chars,
             tokens: Vec::new(),
             marker: Marker::new(),
+
+            allow_list: false,
+            list_has_item: false,
+
+
         }
     }
 
@@ -106,12 +113,13 @@ impl<T: Iterator<Item = char>> Scanner<T> {
     pub fn scan(&mut self) -> Result<&Vec<Token>, String> {
         self.scan_token_whitespaces(0)?;
         while let Some(&c) = self.peek() {
+            println!("{:?}", &self.tokens);
             println!("{}", c);
             match c {
                 '#' => self.scan_line_header()?,
                 '-' => self.scan_line_variable()?,
-                // '*' => self.scan_line_list_item()?,
-                _   => { return Err(String::from("Invalid token")) },
+                '*' => self.scan_line_list_item()?,
+                _   => return Err(String::from("Invalid token")),
             }
         }
 
@@ -120,6 +128,15 @@ impl<T: Iterator<Item = char>> Scanner<T> {
 
 
     pub fn scan_token_whitespaces(&mut self, min: usize) -> Result<(), String> {
+        // // check if last token was whitespace
+        // if self.tokens.len() > 0 {
+        //     println!("{:?}", self.tokens);
+        //     if let Token(TokenType::WhiteSpace(_)) = self.tokens[self.tokens.len() - 1] {
+        //         self.next();
+        //         return Ok(());
+        //     }
+        // }
+
         let mut count = 0;
         while let Some(&c) = self.peek() {
             match c {
@@ -131,11 +148,15 @@ impl<T: Iterator<Item = char>> Scanner<T> {
             }
         }
 
+        // check minimum number of whitespaces
         if count < min {
             return Err(format!("Expecting at least {} spaces, found {}", min, count));
         }
 
+        // check for duplicate whtiespaces
         self.push_token(TokenType::WhiteSpace(count));
+
+
 
         Ok(())
     }
@@ -200,16 +221,31 @@ impl<T: Iterator<Item = char>> Scanner<T> {
     scan_token_symbol!(self, scan_token_dash, '-', TokenType::Dash, Err(String::from("Missing Dash")));
 
     pub fn scan_line_header(&mut self) -> Result<(),String> {
+        if self.allow_list && !self.list_has_item {
+            return Err(String::from("Missing value"));
+        }
+        if self.allow_list {
+            self.allow_list = false;
+        }
+
         self.scan_token_header_level()?;
         self.scan_token_whitespaces(1)?;
         self.scan_token_identifier()?;
         self.scan_token_whitespaces(0)?;
         self.scan_token_linebreaks()?;
+        self.scan_token_whitespaces(0)?;
 
         Ok(())
     }
 
     pub fn scan_line_variable(&mut self) -> Result<(), String> {
+        if self.allow_list && !self.list_has_item {
+            return Err(String::from("Missing value"));
+        }
+        if self.allow_list {
+            self.allow_list = false;
+        }
+
         self.scan_token_dash()?;
         self.scan_token_whitespaces(1)?;
         self.scan_token_identifier()?;
@@ -223,6 +259,25 @@ impl<T: Iterator<Item = char>> Scanner<T> {
         Ok(())
     }
 
+    pub fn scan_line_list_item(&mut self) -> Result<(), String> {
+        if !self.allow_list {
+            return Err(String::from("Unexpected Star"));
+        }
+
+        self.scan_token_star()?;
+
+        self.scan_token_whitespaces(1)?;
+
+        self.scan_value()?;
+
+        self.scan_token_whitespaces(0)?;
+        self.scan_token_linebreaks()?;
+        self.scan_token_whitespaces(0)?;
+
+        self.list_has_item = true;
+        Ok(())
+    }
+
     pub fn scan_value(&mut self) -> Result<(), String> {
         if let Some(&c) = self.peek() {
             match c {
@@ -230,7 +285,10 @@ impl<T: Iterator<Item = char>> Scanner<T> {
                 '0'..='9' => self.scan_token_number()?,
                 't'       => self.scan_token_true()?,
                 'f'       => self.scan_token_false()?,
-                '\n'      => self.scan_list_items()?,
+                '\n'      => {
+                    self.allow_list = true;
+                    self.scan_token_linebreaks()?;
+                },
                 _         => return Err(String::from("Invliad value")),
             }
         }
@@ -241,26 +299,6 @@ impl<T: Iterator<Item = char>> Scanner<T> {
     scan_token_symbol!(self, scan_token_star, '*', TokenType::Star, Err(String::from("Missing Values!")));
 
 
-    pub fn scan_list_items(&mut self) -> Result<(), String> {
-        self.scan_token_linebreaks()?;
-        self.scan_token_whitespaces(0)?;
-        // println!("{:?}", self.peek());
-
-        println!("{:?}", self.peek());
-        while self.peek() == Some(&'*') {
-            self.scan_token_star()?;
-
-            self.scan_token_whitespaces(1)?;
-
-            self.scan_value()?;
-
-            self.scan_token_whitespaces(0)?;
-            self.scan_token_linebreaks()?;
-            self.scan_token_whitespaces(0)?;
-        }
-
-        Ok(())
-    }
 
     pub fn scan_token_number(&mut self) -> Result<(), String> { // TODO: support all possible number types
         let mut number = String::new();
@@ -421,15 +459,17 @@ mod tests {
 
     test_scanner!(
         list_item,
-        scan_line_list_item,
+        scan_list_items,
         "  * \"item\"",
         vec![
+            Token(TokenType::LineBreak(0)),
             Token(TokenType::WhiteSpace(2)),
             Token(TokenType::Star),
             Token(TokenType::WhiteSpace(1)),
             Token(TokenType::String(String::from("item"))),
             Token(TokenType::WhiteSpace(0)),
             Token(TokenType::LineBreak(0)),
+            Token(TokenType::WhiteSpace(0))
         ]
     );
 
