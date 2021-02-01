@@ -4,10 +4,11 @@ use scanner::*;
 
 fn main() {
 
-    let text = String::from(r#" # Title
-## bla
+    let text = String::from(r#"# Title
+- list:
+  * "item 1"
+  * "item 2"
 - key: "value"
-
 "#);
     let mut scanner = Scanner::new(text.chars());
 

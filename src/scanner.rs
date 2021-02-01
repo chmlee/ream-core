@@ -1,4 +1,4 @@
-use std::collections::VecDeque;
+// use std::collections::VecDeque;
 use std::iter::Peekable;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -28,6 +28,7 @@ pub enum TokenType {
     Boolean(bool),
     Colon,
     Dash,
+    Star,
     WhiteSpace(usize),
     LineBreak(usize),
 
@@ -105,10 +106,12 @@ impl<T: Iterator<Item = char>> Scanner<T> {
     pub fn scan(&mut self) -> Result<&Vec<Token>, String> {
         self.scan_token_whitespaces(0)?;
         while let Some(&c) = self.peek() {
+            println!("{}", c);
             match c {
                 '#' => self.scan_line_header()?,
                 '-' => self.scan_line_variable()?,
-                _   => { return Err(String::from("wrong!")) },
+                // '*' => self.scan_line_list_item()?,
+                _   => { return Err(String::from("Invalid token")) },
             }
         }
 
@@ -227,12 +230,38 @@ impl<T: Iterator<Item = char>> Scanner<T> {
                 '0'..='9' => self.scan_token_number()?,
                 't'       => self.scan_token_true()?,
                 'f'       => self.scan_token_false()?,
+                '\n'      => self.scan_list_items()?,
                 _         => return Err(String::from("Invliad value")),
             }
         }
 
         Ok(())
     }
+
+    scan_token_symbol!(self, scan_token_star, '*', TokenType::Star, Err(String::from("Missing Values!")));
+
+
+    pub fn scan_list_items(&mut self) -> Result<(), String> {
+        self.scan_token_linebreaks()?;
+        self.scan_token_whitespaces(0)?;
+        // println!("{:?}", self.peek());
+
+        println!("{:?}", self.peek());
+        while self.peek() == Some(&'*') {
+            self.scan_token_star()?;
+
+            self.scan_token_whitespaces(1)?;
+
+            self.scan_value()?;
+
+            self.scan_token_whitespaces(0)?;
+            self.scan_token_linebreaks()?;
+            self.scan_token_whitespaces(0)?;
+        }
+
+        Ok(())
+    }
+
     pub fn scan_token_number(&mut self) -> Result<(), String> { // TODO: support all possible number types
         let mut number = String::new();
         while let Some(&c) = self.peek() {
@@ -311,8 +340,8 @@ mod tests {
                 let mut scanner = Scanner::new(text.chars());
                 let _x = scanner.$method();
                 assert_eq!(
-                    scanner.tokens[0],
-                    Token($output)
+                    scanner.tokens,
+                    $output
                 )
             }
         }
@@ -322,50 +351,86 @@ mod tests {
         header_level,
         scan_token_header_level,
         "###",
-        TokenType::Header(3)
+        vec![
+            Token(TokenType::Header(3))
+        ]
     );
 
     test_scanner!(
         string,
         scan_token_string,
         "\"this is a long string value\"",
-        TokenType::String(String::from("this is a long string value"))
+        vec![
+            Token(TokenType::String(String::from("this is a long string value")))
+        ]
     );
 
     test_scanner!(
         identifier,
         scan_token_identifier,
         "Name",
-        TokenType::Identifier(String::from("Name"))
+        vec![
+            Token(TokenType::Identifier(String::from("Name")))
+        ]
     );
 
     test_scanner!(
         identifier_no_space,
         scan_token_identifier,
         "Name you should not see this",
-        TokenType::Identifier(String::from("Name"))
+        vec![
+            Token(TokenType::Identifier(String::from("Name")))
+        ]
     );
 
     test_scanner!(
         number,
         scan_token_number,
         "1234567890",
-        TokenType::Number(String::from("1234567890"))
+        vec![
+            Token(TokenType::Number(String::from("1234567890")))
+        ]
     );
 
     test_scanner!(
         boolean_true,
         scan_token_true,
         "true",
-        TokenType::Boolean(true)
+        vec![
+            Token(TokenType::Boolean(true))
+        ]
     );
 
     test_scanner!(
         boolean_false,
         scan_token_false,
         "false",
-        TokenType::Boolean(false)
+        vec![
+            Token(TokenType::Boolean(false))
+        ]
     );
 
+    test_scanner!(
+        star,
+        scan_token_star,
+        "*",
+        vec![
+            Token(TokenType::Star)
+        ]
+    );
+
+    test_scanner!(
+        list_item,
+        scan_line_list_item,
+        "  * \"item\"",
+        vec![
+            Token(TokenType::WhiteSpace(2)),
+            Token(TokenType::Star),
+            Token(TokenType::WhiteSpace(1)),
+            Token(TokenType::String(String::from("item"))),
+            Token(TokenType::WhiteSpace(0)),
+            Token(TokenType::LineBreak(0)),
+        ]
+    );
 
 }
