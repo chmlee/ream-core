@@ -5,7 +5,10 @@ use scanner::*;
 fn main() {
 
     let text = String::from(r#" # Title
-## bla "#);
+## bla
+- key: "value"
+
+"#);
     let mut scanner = Scanner::new(text.chars());
 
     let tokens = scanner.scan();

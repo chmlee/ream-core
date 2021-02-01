@@ -43,24 +43,35 @@ pub struct Scanner<T: Iterator<Item = char>>  {
 
 }
 
-macro_rules! scan_keyword {
-    ($self:ident, $name:ident, $keyword:expr, $token_type:expr) => {
-        pub fn $name(&mut $self) {
-            for c in $keyword.chars() {
+macro_rules! scan_token_keyword {
+    ($self:ident, $name:ident, $keyword:expr, $token_type:expr, $err_msg:expr) => {
+        pub fn $name(&mut $self) -> Result<(), String> {
+            for c in $keyword.chars() { // TODO: check out of bound
                 if Some(&c) == $self.peek() {
                     $self.next();
                 } else {
-                    $self.push_token(TokenType::Error);
-                    // return TokenType::Error;
+                    return Err($err_msg)
                 }
             }
-            $self.push_token($token_type)
-            // return $token_type;
+            $self.push_token($token_type);
+
+            Ok(())
         }
     }
 }
 
-
+macro_rules! scan_token_symbol {
+    ($self:ident, $name:ident, $symbol:expr, $ok:expr, $error:expr) => {
+        pub fn $name(&mut $self) -> Result<(), String> {
+            if let Some($symbol) = $self.peek() {
+                $self.push_token($ok);
+                $self.next();
+                return Ok(())
+            }
+            $error
+        }
+    }
+}
 
 impl<T: Iterator<Item = char>> Scanner<T> {
 
@@ -94,8 +105,6 @@ impl<T: Iterator<Item = char>> Scanner<T> {
     pub fn scan(&mut self) -> Result<&Vec<Token>, String> {
         self.scan_token_whitespaces(0)?;
         while let Some(&c) = self.peek() {
-            println!("{:?}", self.tokens);
-            println!("scanning new line");
             match c {
                 '#' => self.scan_line_header()?,
                 '-' => self.scan_line_variable()?,
@@ -140,7 +149,6 @@ impl<T: Iterator<Item = char>> Scanner<T> {
             }
         }
 
-        println!("{}", string);
         if string.len() > 0 {
             self.push_token(TokenType::Identifier(string));
         } else {
@@ -168,6 +176,8 @@ impl<T: Iterator<Item = char>> Scanner<T> {
         Ok(())
     }
 
+    scan_token_symbol!(self, scan_token_colon, ':', TokenType::Colon, Err(String::from("Missing Colon")));
+
     pub fn scan_token_header_level(&mut self) -> Result<(),String> {
         let mut count = 0;
         while let Some(&c) = self.peek() {
@@ -183,31 +193,13 @@ impl<T: Iterator<Item = char>> Scanner<T> {
         Ok(())
     }
 
-    pub fn scan_token_colon(&mut self) -> Result<(), String> {
-        if let Some(':') = self.peek() {
-            self.push_token(TokenType::Colon);
-            self.next();
-            return Ok(())
-        }
-        Err(String::from("Missing Colon"))
-    }
 
-    pub fn scan_token_dash(&mut self) -> Result<(), String> {
-        if let Some('-') = self.peek() {
-            self.push_token(TokenType::Dash);
-            self.next();
-            return Ok(())
-        }
-        Err(String::from("Missing Dash"))
-    }
+    scan_token_symbol!(self, scan_token_dash, '-', TokenType::Dash, Err(String::from("Missing Dash")));
 
     pub fn scan_line_header(&mut self) -> Result<(),String> {
         self.scan_token_header_level()?;
-
         self.scan_token_whitespaces(1)?;
-
         self.scan_token_identifier()?;
-
         self.scan_token_whitespaces(0)?;
         self.scan_token_linebreaks()?;
 
@@ -216,42 +208,82 @@ impl<T: Iterator<Item = char>> Scanner<T> {
 
     pub fn scan_line_variable(&mut self) -> Result<(), String> {
         self.scan_token_dash()?;
-
         self.scan_token_whitespaces(1)?;
-
         self.scan_token_identifier()?;
-
         self.scan_token_whitespaces(0)?;
-
         self.scan_token_colon()?;
-
-        self.scan_token_string(0)?;
-
+        self.scan_token_whitespaces(0)?;
+        self.scan_value()?;
         self.scan_token_whitespaces(0)?;
         self.scan_token_linebreaks()?;
 
-
+        Ok(())
     }
 
+    pub fn scan_value(&mut self) -> Result<(), String> {
+        if let Some(&c) = self.peek() {
+            match c {
+                '"'       => self.scan_token_string()?,
+                '0'..='9' => self.scan_token_number()?,
+                't'       => self.scan_token_true()?,
+                'f'       => self.scan_token_false()?,
+                _         => return Err(String::from("Invliad value")),
+            }
+        }
 
+        Ok(())
+    }
+    pub fn scan_token_number(&mut self) -> Result<(), String> { // TODO: support all possible number types
+        let mut number = String::new();
+        while let Some(&c) = self.peek() {
+            match c {
+                '0'..='9'  => {
+                    number.push(c);
+                    self.next();
+                },
+                ' ' | '\n' => break, // TODO: match all utf8 whitespaces
+                _ => return Err(String::from("Invalid number")),
+            }
+        }
 
-    // scan_keyword!(self, scan_true, "true", TokenType::Boolean(true));
-    // scan_keyword!(self, scan_false, "true", TokenType::Boolean(false));
+        self.push_token(TokenType::Number(number));
+        Ok(())
+    }
 
-    // pub fn scan_number(&mut self) { // TODO: support all possible number types
-    //     let mut number = String::new();
-    //     while let Some(&c) = self.peek() {
-    //         match c {
-    //             '0'..='9'  => {
-    //                 number.push(c);
-    //                 self.next();
-    //             },
-    //             _ => break,
-    //         }
-    //     }
+    pub fn scan_token_string(&mut self) -> Result<(), String> {
+        self.next(); // consume opening `"`
+        let mut string = String::new();
+        let mut escape = false;
+        while let Some(&c) = self.peek() {
+            match c {
+                '"' => {
+                    if escape {
+                        string.push(c);
+                        self.next();
+                        escape = false;
+                    } else {
+                        self.next();
+                        self.push_token(TokenType::String(string));
+                        break;
+                    }
+                },
+                '/' => {
+                    escape = true;
+                    self.next();
+                },
+                _   => {
+                    string.push(c);
+                    self.next();
+                }
+            }
+        }
 
-    //     self.push_token(TokenType::Number(number));
-    // }
+        Ok(())
+    }
+
+    scan_token_keyword!(self, scan_token_true, "true", TokenType::Boolean(true), String::from("invalid boolean"));
+    scan_token_keyword!(self, scan_token_false, "false", TokenType::Boolean(false), String::from("invalid boolean"));
+
 
 
 
@@ -271,69 +303,69 @@ mod tests {
 
     use super::*;
 
-    #[test]
-    fn header_1() {
-        let it = String::from("#");
-        let mut scanner = Scanner::new(it.chars());
-        scanner.scan_token_header_level();
-        assert_eq!(
-            scanner.tokens[0],
-            Token(TokenType::Header(1))
-        );
+    macro_rules! test_scanner {
+        ($name:ident, $method:ident, $input:expr, $output:expr) => {
+            #[test]
+            fn $name() {
+                let text = String::from($input);
+                let mut scanner = Scanner::new(text.chars());
+                let _x = scanner.$method();
+                assert_eq!(
+                    scanner.tokens[0],
+                    Token($output)
+                )
+            }
+        }
     }
 
-    #[test]
-    fn header_n() {
-        let text = String::from("###");
-        let mut scanner = Scanner::new(text.chars());
-        scanner.scan_token_header_level();
-        assert_eq!(
-            scanner.tokens[0],
-            Token(TokenType::Header(3))
-        )
-    }
+    test_scanner!(
+        header_level,
+        scan_token_header_level,
+        "###",
+        TokenType::Header(3)
+    );
 
-    #[test]
-    fn identifier() {
-        let text = String::from("Name");
-        let mut scanner = Scanner::new(text.chars());
-        scanner.scan_token_identifier();
-        assert_eq!(
-            scanner.tokens[0],
-            Token(TokenType::Identifier(String::from("Name")))
-        )
-    }
+    test_scanner!(
+        string,
+        scan_token_string,
+        "\"this is a long string value\"",
+        TokenType::String(String::from("this is a long string value"))
+    );
 
-    #[test]
-    fn identifier_no_space() {
-        let text = String::from("Name other");
-        let mut scanner = Scanner::new(text.chars());
-        scanner.scan_token_identifier();
-        assert_eq!(
-            scanner.tokens[0],
-            Token(TokenType::Identifier(String::from("Name")))
-        )
-    }
+    test_scanner!(
+        identifier,
+        scan_token_identifier,
+        "Name",
+        TokenType::Identifier(String::from("Name"))
+    );
 
-    #[test]
-    fn positive_integer() {
-        let text = String::from("12848392");
-        let mut scanner = Scanner::new(text.chars());
-        scanner.scan_number();
-        assert_eq!(
-            scanner.tokens[0],
-            Token(TokenType::Number(String::from("12848392")))
-        )
-    }
+    test_scanner!(
+        identifier_no_space,
+        scan_token_identifier,
+        "Name you should not see this",
+        TokenType::Identifier(String::from("Name"))
+    );
 
-    // #[test]
-    // fn tt() {
-    //     let text = String::from("tue");
-    //     let mut scanner = Scanner::new(text.chars());
-    //     let result = scanner.scan_true();
-    //     assert_eq!(
-    //         result, TokenType::Error
-    //     )
-    // }
+    test_scanner!(
+        number,
+        scan_token_number,
+        "1234567890",
+        TokenType::Number(String::from("1234567890"))
+    );
+
+    test_scanner!(
+        boolean_true,
+        scan_token_true,
+        "true",
+        TokenType::Boolean(true)
+    );
+
+    test_scanner!(
+        boolean_false,
+        scan_token_false,
+        "false",
+        TokenType::Boolean(false)
+    );
+
 
 }
