@@ -1,23 +1,19 @@
 mod scanner;
 
+use std::env;
 use scanner::*;
+use std::fs;
 
 fn main() {
 
-    let text = String::from(r#"# Title
-- list:
-  * "item 1"
-  * "item 2"
-- key: "value"
-- list:
-  * "item 1"
-  * "item 2"
-"#);
-    let mut scanner = Scanner::new(text.chars());
+    let args: Vec<String> = env::args().collect();
+    let filename = &args[1];
+    let contents = fs::read_to_string(filename)
+        .expect("can't read file");
+    let mut scanner = Scanner::new(contents.chars());
 
     let tokens = scanner.scan();
 
-    println!("{}", text);
     println!("{:?}", tokens);
 
 

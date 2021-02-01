@@ -194,10 +194,10 @@ impl<T: Iterator<Item = char>> Scanner<T> {
         while let Some(&c) = self.peek() {
             match c {
                 '\n' => {
-                    self.marker.line += 1;
-                    self.marker.col = 0;
                     count += 1;
                     self.next();
+                    self.marker.line += 1;
+                    self.marker.col = 1;
                 },
                 _ => break,
             }
