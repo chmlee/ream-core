@@ -4,15 +4,14 @@ use scanner::*;
 
 fn main() {
 
-    let text = String::from(r#"
-#      Title
-- key   : "value"
-        "#);
+    let text = String::from(r#" # Title
+## bla "#);
     let mut scanner = Scanner::new(text.chars());
 
-    scanner.scan();
+    let tokens = scanner.scan();
 
-    println!("{:?}", scanner.tokens);
+    println!("{:?}", text);
+    println!("{:?}", tokens);
 
 
 
