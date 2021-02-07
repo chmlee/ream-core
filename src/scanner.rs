@@ -427,7 +427,7 @@ mod tests {
         scan_token_header_level,
         "###",
         vec![
-            Token(TokenType::Header(3))
+            Token(TokenType::Header(3), Marker{line:1, col:1})
         ]
     );
 
@@ -436,7 +436,7 @@ mod tests {
         scan_token_string,
         "\"this is a long string value\"",
         vec![
-            Token(TokenType::String(String::from("this is a long string value")))
+            Token(TokenType::String(String::from("this is a long string value")), Marker{line:1, col:1})
         ]
     );
 
@@ -445,7 +445,7 @@ mod tests {
         scan_token_identifier,
         "Name",
         vec![
-            Token(TokenType::Identifier(String::from("Name")))
+            Token(TokenType::Identifier(String::from("Name")), Marker{line:1, col:1})
         ]
     );
 
@@ -454,7 +454,7 @@ mod tests {
         scan_token_identifier,
         "Name you should not see this",
         vec![
-            Token(TokenType::Identifier(String::from("Name")))
+            Token(TokenType::Identifier(String::from("Name")), Marker{line:1, col:1})
         ]
     );
 
@@ -463,7 +463,7 @@ mod tests {
         scan_token_number,
         "1234567890",
         vec![
-            Token(TokenType::Number(String::from("1234567890")))
+            Token(TokenType::Number(String::from("1234567890")), Marker{line:1, col:1})
         ]
     );
 
@@ -472,7 +472,7 @@ mod tests {
         scan_token_true,
         "true",
         vec![
-            Token(TokenType::Boolean(true))
+            Token(TokenType::Boolean(true), Marker{line:1, col:1})
         ]
     );
 
@@ -481,7 +481,7 @@ mod tests {
         scan_token_false,
         "false",
         vec![
-            Token(TokenType::Boolean(false))
+            Token(TokenType::Boolean(false), Marker{line:1, col:1})
         ]
     );
 
@@ -490,24 +490,8 @@ mod tests {
         scan_token_star,
         "*",
         vec![
-            Token(TokenType::Star)
+            Token(TokenType::Star, Marker{line:1, col:1})
         ]
     );
-
-    // test_scanner!(
-    //     list_item,
-    //     scan_list_items,
-    //     "  * \"item\"",
-    //     vec![
-    //         Token(TokenType::LineBreak(0)),
-    //         Token(TokenType::WhiteSpace(2)),
-    //         Token(TokenType::Star),
-    //         Token(TokenType::WhiteSpace(1)),
-    //         Token(TokenType::String(String::from("item"))),
-    //         Token(TokenType::WhiteSpace(0)),
-    //         Token(TokenType::LineBreak(0)),
-    //         Token(TokenType::WhiteSpace(0))
-    //     ]
-    // );
 
 }
