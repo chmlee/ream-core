@@ -101,7 +101,7 @@ impl<T: Iterator<Item = char>> Scanner<T> {
 
             allow_list: false,
             list_has_item: false,
-            level: 0,
+            level: 1
         }
     }
 
@@ -149,11 +149,6 @@ impl<T: Iterator<Item = char>> Scanner<T> {
                 '*' => self.scan_line_list_item()?,
                 _   => return Err(String::from("Invalid token")),
             }
-        }
-
-        for level in (1..=self.level).rev() {
-            println!("{}", level);
-            self.push_token(TokenType::End(level));
         }
 
         Ok(&self.tokens)
@@ -237,18 +232,6 @@ impl<T: Iterator<Item = char>> Scanner<T> {
                 break
             }
         }
-
-        println!("{}, {}", self.level, count);
-        // Add End tokens if not child
-        if count <= self.level {
-            println!("a");
-            for level in (count..=self.level).rev() {
-                println!("{}", level);
-                self.push_token(TokenType::End(level));
-            }
-        }
-        self.level = count;
-
         self.push_token(TokenType::Header(count));
 
         Ok(())
