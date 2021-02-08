@@ -32,10 +32,10 @@ fn main() {
 - name: "Chicago"
 "#;
 
-    let mut parser = Parser::new(String::from(content));
+    let parser = Scanner::new(content.chars());
 
-    println!("{}", content);
-    println!("{:?}", parser.tokens);
+    // println!("{}", content);
+    // println!("{:?}", &parser);
 
 
 
