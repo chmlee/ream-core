@@ -1,21 +1,22 @@
 use std::iter::Peekable;
+use std::collections::VecDeque;
 use std::fmt;
 
 #[derive(PartialEq, Eq, Clone)]
 pub struct Token(pub TokenType, pub Marker);
 
-impl Token {
-    pub fn is_info(&self) -> bool {
-        match self.0 {
-            TokenType::Colon
-            | TokenType::Dash
-            | TokenType::Star
-            | TokenType::LineBreak(_)
-            | TokenType::WhiteSpace(_) => false,
-            _                          => true,
-        }
-    }
-}
+// impl Token {
+//     pub fn is_info(&self) -> bool {
+//         match self.0 {
+//             TokenType::Colon
+//             | TokenType::Dash
+//             | TokenType::Star
+//             | TokenType::LineBreak(_)
+//             | TokenType::WhiteSpace(_) => false,
+//             _                          => true,
+//         }
+//     }
+// }
 
 impl fmt::Debug for Token {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -64,6 +65,7 @@ pub enum TokenType {
 pub struct Scanner<T: Iterator<Item = char>>  {
     pub chars: Peekable<T>,
     pub tokens: Vec<Token>,
+    // pub buffer: VecDeque<Token>,
 
     pub marker: Marker,
     pub allow_list: bool,

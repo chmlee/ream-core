@@ -18,8 +18,11 @@ impl Parser {
             }
         )
     }
-
-
-
-
 }
+
+// impl Iterator for Parser {
+//     type Item = Token;
+//     fn next(&mut self) -> Option<Self::Item> {
+//         self.tokens.next()
+//     }
+// }
