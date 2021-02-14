@@ -30,11 +30,11 @@ fn main() {
 
 ### City
 - name: "Chicago"
-"#;
+"#.to_string();
 
-    let parser = Scanner::new(content.chars());
+    let parser = Parser::new(content);
 
-    // println!("{}", content);
+    println!("{:?}", parser);
     // println!("{:?}", &parser);
 
 

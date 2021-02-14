@@ -26,12 +26,12 @@ impl fmt::Debug for Token {
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub struct Marker {
-    line: usize,
-    col: usize,
+    pub line: usize,
+    pub col: usize,
 }
 
 impl Marker {
-    fn new(line: usize, col: usize) -> Self {
+    pub fn new(line: usize, col: usize) -> Self {
         Marker {
             line,
             col,
@@ -191,7 +191,7 @@ impl<T: Iterator<Item = char>> Scanner<T> {
             return Err(format!("Expecting at least {} spaces, found {}", min, count));
         }
 
-        self.push_token(TokenType::WhiteSpace(count));
+        // self.push_token(TokenType::WhiteSpace(count));
 
 
 
@@ -232,7 +232,7 @@ impl<T: Iterator<Item = char>> Scanner<T> {
                 _ => break,
             }
         }
-        self.push_token(TokenType::LineBreak(count));
+        // self.push_token(TokenType::LineBreak(count));
 
 
         Ok(())

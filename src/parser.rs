@@ -1,26 +1,24 @@
-use crate::scanner::*;
+use std::iter::Peekable;
 use std::str::Chars;
+use crate::scanner::*;
 
-pub struct Parser<'a, T>
-where
-    T: Iterator<Item = char>
-{
-    pub scanner: Scanner<T>,
+#[derive(Debug)]
+pub struct Parser {
+    pub tokens: Vec<Token>,
 }
 
-impl<'a, T> Parser<'a, T>
-where
-    T: Iterator<Item = char>
-{
-    // pub fn new(content: &str) -> Self {
-    //     Parser {
-    //         scanner: Scanner::new(content.chars())
-    //     }
-    // }
+impl Parser {
 
-    pub fn test<'a>(source: String) -> Scanner<'a, std::str::Chars> {
-        Scanner::new(source.chars())
+    pub fn new(source: String) -> Result<Self, String> {
+        let mut scanner = Scanner::new(source.chars());
+        let tokens = scanner.scan()?.to_vec();
+        Ok(
+            Parser {
+                tokens
+            }
+        )
     }
+
 
 
 
