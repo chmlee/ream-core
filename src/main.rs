@@ -8,35 +8,15 @@ use parser::*;
 
 fn main() {
 
-    // let args: Vec<String> = env::args().collect();
-    // let filename = &args[1];
-    // let contents = fs::read_to_string(filename)
-    //     .expect("can't read file");
-    // let mut scanner = Scanner::new(contents.chars());
+    let file = fs::read_to_string("./example/test.md").unwrap();
 
-    // let tokens = scanner.scan();
+    let mut scanner = Scanner::new(&file);
 
-    // println!("{:?}", tokens);
-
-    let content = r#"# Country
-- name: "USA"
-## State
-- name: "New York"
-### City
-- name: "New York City"
-
-## State
-- name: "Illinois"
-
-### City
-- name: "Chicago"
-"#.to_string();
-
-    let parser = Parser::new(content);
-
-    println!("{:?}", parser);
-    // println!("{:?}", &parser);
-
+    scanner.get_source();
+    scanner.scan_line().unwrap();
+    scanner.get_source();
+    scanner.scan_line().unwrap();
+    println!("{:?}", scanner);
 
 
 }
