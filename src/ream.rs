@@ -50,3 +50,4 @@ macro_rules! result_type {
 result_type!(ParseEntryResult, Entry);
 result_type!(ParseVariableResult, Variable);
 result_type!(ParseValueResult, Value);
+result_type!(ParseHeaderResult, ());

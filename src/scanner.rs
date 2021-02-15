@@ -198,7 +198,7 @@ impl<'source> Scanner<'source> {
                     count += 1;
                 },
                 [b' ', ..] => break,
-                _ => panic!("panic!"),
+                _ => panic!("expecting header!"),
             }
         }
         self.push_token(Token(TokenType::Header(count)));
@@ -217,7 +217,7 @@ impl<'source> Scanner<'source> {
                     name.push(*b as char);
                     self.source = rest;
                 },
-                _ => panic!("panic!"),
+                _ => panic!("expecting key"),
             }
         }
         self.push_token(Token(TokenType::Key(name)));
@@ -236,7 +236,7 @@ impl<'source> Scanner<'source> {
                     name.push(*b as char);
                     self.source = rest;
                 },
-                _ => panic!("panic!"),
+                _ => panic!("expecting class!"),
             }
         }
         self.push_token(Token(TokenType::Class(name)));
@@ -254,8 +254,6 @@ impl<'source> Scanner<'source> {
                 self.eof = true;
             },
             _ => {
-                self.get_source();
-                println!("{:?}", self.buffer);
                 panic!("should end line!");
             },
         }
