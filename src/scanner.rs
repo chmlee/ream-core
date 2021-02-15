@@ -1,4 +1,3 @@
-use std::iter::Peekable;
 use std::collections::VecDeque;
 use std::{fmt, str};
 
@@ -161,8 +160,12 @@ impl<'source> Scanner<'source> {
                     value.push(*b as char);
                     self.source = rest;
                 },
-                _ => panic!("unreachable"),
+                _ => break, // TODO: ?
             }
+        }
+
+        if value.is_empty() {
+            panic!("value is empty");
         }
 
         self.push_token(Token(TokenType::String(value)));
@@ -197,7 +200,8 @@ impl<'source> Scanner<'source> {
                     self.source = rest;
                     count += 1;
                 },
-                [b' ', ..] => break,
+                [b' ',  ..] => break,
+                [b'\n', ..] => break,
                 _ => panic!("expecting header!"),
             }
         }
@@ -227,6 +231,7 @@ impl<'source> Scanner<'source> {
 
     pub fn scan_token_class(&mut self) -> ScanResult {
         let mut name = String::new();
+        self.get_source();
         loop {
             match self.source {
                 [b'\n', ref _rest @ ..] => {
@@ -236,9 +241,14 @@ impl<'source> Scanner<'source> {
                     name.push(*b as char);
                     self.source = rest;
                 },
-                _ => panic!("expecting class!"),
+                _ => break,
             }
         }
+
+        if name.is_empty() {
+            panic!("class is empty");
+        }
+
         self.push_token(Token(TokenType::Class(name)));
 
         Ok(())
@@ -265,8 +275,35 @@ impl<'source> Scanner<'source> {
 #[cfg(test)]
 mod tests {
 
+    use super::*;
+
     #[test]
-    fn test() {
-        assert_eq!(1, 1);
+    fn header_line() {
+        let text = "# Title";
+        let mut scanner = Scanner::new(&text);
+        let _ = scanner.scan_line();
+        assert_eq!(
+            scanner.buffer,
+            vec![
+                Token(TokenType::Header(1)),
+                Token(TokenType::Class("Title".to_string())),
+            ]
+        )
+    }
+
+    #[test]
+    fn varible_line_string() {
+        let text = "- key: value";
+        let mut scanner = Scanner::new(&text);
+        let _ = scanner.scan_line();
+        assert_eq!(
+            scanner.buffer,
+            vec![
+                Token(TokenType::Dash),
+                Token(TokenType::Key("key".to_string())),
+                Token(TokenType::Colon),
+                Token(TokenType::String("value".to_string())),
+            ]
+        )
     }
 }
