@@ -4,19 +4,25 @@ mod ream;
 
 use scanner::*;
 use parser::*;
-use std::fs;
+use std::{env, fs};
 
 fn main() {
 
-    let file = fs::read_to_string("./example/test.md").unwrap();
+    let args: Vec<String> = env::args().collect();
+    let file = fs::read_to_string(&args[1]).unwrap();
 
     let mut parser = Parser::new(&file);
 
-    let result = parser.parse_entry();
+    let result = match parser.parse_entry().unwrap() {
+        Some(r) => r,
+        None => panic!("bla"),
+    };
 
+    println!("{:#?}", &result);
 
+    let se = serde_json::to_string_pretty(&result).unwrap();
+    println!("{}", &se);
 
-    println!("{:?}", result);
 
 
 }

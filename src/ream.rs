@@ -1,4 +1,6 @@
-#[derive(Debug)]
+use serde::{Serialize, Deserialize};
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Entry {
     pub class: String,
     pub level: usize,
@@ -23,7 +25,7 @@ impl Entry {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Variable {
     pub key: String,
     pub value: Value,
@@ -35,7 +37,7 @@ impl Variable {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub enum Value {
     String(String),
 }
