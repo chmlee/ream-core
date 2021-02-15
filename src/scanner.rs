@@ -7,7 +7,7 @@ pub struct Token(pub TokenType);
 
 impl fmt::Debug for Token {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "\n{:?}",
+        write!(f, "{:?}",
                self.0 /*, self.1.line, self.1.col*/)
     }
 }
@@ -54,8 +54,10 @@ type ScanResult = Result<(), ()>;
 
 #[derive(Debug, Clone)]
 pub struct Scanner<'source>  {
-    source: &'source [u8],
-    buffer: VecDeque<Token>,
+    pub source: &'source [u8],
+    pub buffer: VecDeque<Token>,
+
+    pub eof: bool,
 }
 
 impl<'source> Scanner<'source> {
@@ -64,6 +66,8 @@ impl<'source> Scanner<'source> {
         Scanner {
             source: source,
             buffer: VecDeque::new(),
+
+            eof: false,
         }
     }
 
@@ -75,11 +79,25 @@ impl<'source> Scanner<'source> {
         self.buffer.push_back(token);
     }
 
+    pub fn take_token(&mut self) -> Result<Option<Token>, ()> {
+        if self.buffer.is_empty() {
+            if self.eof {
+                return Ok(None);   // End of File
+            } else {
+                self.scan_line()?; // add tokens to buffer
+            }
+        }
+
+        let token = self.buffer.pop_front();
+        // println!("{:?}", token);
+        Ok(token)
+    }
+
     pub fn skip_whitespaces(&mut self, min: usize) -> ScanResult {
         let mut count = 0;
         loop {
             match self.source {
-                [b' ', ref rest @ ..] => {
+                [b' ', ref rest @ ..] => { // TODO: add all utf8 whitespaces
                     self.source = rest;
                     count += 1;
                 },
@@ -98,14 +116,17 @@ impl<'source> Scanner<'source> {
 
         self.skip_whitespaces(0)?;
 
-        let (token, rest) = match self.source {
-            [tk, ref rest @ ..] => (tk, rest),
-            _ => panic!("panic!"),
+        let (target, rest) = match self.source {
+            [t, ref rest @ ..] => (t, rest),
+            [] => {
+                self.eof = true;
+                return Ok(());
+            },
         };
 
         self.source = rest;
 
-        match token {
+        match target {
             b'#' => self.scan_line_header()?,
             b'-' => self.scan_line_variable()?,
             _ => panic!("Invalid token!"),
@@ -117,23 +138,23 @@ impl<'source> Scanner<'source> {
     }
 
     pub fn scan_line_variable(&mut self) -> ScanResult {
+        self.push_token(Token(TokenType::Dash));
         self.skip_whitespaces(1)?;
         self.scan_token_key()?;
         self.skip_whitespaces(0)?;
         self.scan_token_colon()?;
         self.skip_whitespaces(0)?;
         self.scan_value()?;
+        // self.end_of_line()?;
 
         Ok(())
     }
 
     pub fn scan_value(&mut self) -> ScanResult {
-        self.get_source();
         let mut value = String::new();
         loop {
             match self.source {
-                [b'\n', ref rest @ ..] => {
-                    self.source = rest;
+                [b'\n', ref _rest @ ..] => {
                     break;
                 },
                 [b, ref rest @ ..] => {
@@ -228,10 +249,26 @@ impl<'source> Scanner<'source> {
         match self.source {
 
             [b'\n', ref rest @ ..] => self.source = rest,
-            [] => println!("end of file"),
-            _ => panic!("should end line!"),
+            [] => {
+                println!("end of file");
+                self.eof = true;
+            },
+            _ => {
+                self.get_source();
+                println!("{:?}", self.buffer);
+                panic!("should end line!");
+            },
         }
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+
+    #[test]
+    fn test() {
+        assert_eq!(1, 1);
     }
 }
