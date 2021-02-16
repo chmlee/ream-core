@@ -2,19 +2,19 @@ use std::collections::VecDeque;
 use std::{fmt, str};
 
 #[derive(PartialEq, Eq, Clone)]
-pub struct Token(pub TokenType);
+pub struct Token(pub TokenType, pub Marker, pub Marker);
 
 impl fmt::Debug for Token {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:?}",
-               self.0 /*, self.1.line, self.1.col*/)
+        write!(f, "{:?}: ({}, {}) - ({}, {})",
+               self.0 , self.1.line, self.1.col, self.2.line, self.2.col)
     }
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub struct Marker {
-    pub line: usize,
-    pub col: usize,
+    line: usize,
+    col: usize,
 }
 
 impl Marker {
@@ -57,6 +57,8 @@ pub struct Scanner<'source>  {
     pub buffer: VecDeque<Token>,
 
     pub eof: bool,
+
+    pub loc: Marker,
 }
 
 impl<'source> Scanner<'source> {
@@ -67,15 +69,53 @@ impl<'source> Scanner<'source> {
             buffer: VecDeque::new(),
 
             eof: false,
+
+            loc: Marker::new(1, 0),
         }
+    }
+
+    pub fn next_col(&mut self, f: &str) {
+        self.get_source();
+        println!("{:?} after {}", self.get_loc(), f);
+        self.loc.col += 1;
+    }
+
+    pub fn next_line(&mut self) {
+        self.get_source();
+        // println!("{:?}", self.get_loc());
+        self.loc.col = 0;
+        self.loc.line += 1;
     }
 
     pub fn get_source(&self) {
         println!("{:?}", str::from_utf8(self.source).unwrap());
     }
 
-    pub fn push_token(&mut self, token: Token) {
-        self.buffer.push_back(token);
+    pub fn get_loc(&self) -> Marker {
+        self.loc
+    }
+
+    pub fn update_source(&mut self, rest: &'source [u8]) {
+        self.source = rest;
+        self.next_col("update");
+    }
+
+    pub fn push_token(&mut self, tt: TokenType) {
+        let end = self.get_loc();
+
+        let Marker{ line, col } = self.get_loc();
+        let col = match &tt {
+            TokenType::Dash
+            | TokenType::Colon       => col,
+            TokenType::Header(n)     => col - n + 1,
+            TokenType::Class(s)
+            | TokenType::Key(s)
+            | TokenType::String(s)   => col - s.len() + 1,
+            _ => col,
+        };
+        let start = Marker::new(line, col);
+
+        self.buffer.push_back(Token(tt, start, end));
     }
 
     pub fn take_token(&mut self) -> Result<Option<Token>, ()> {
@@ -97,7 +137,7 @@ impl<'source> Scanner<'source> {
         loop {
             match self.source {
                 [b' ', ref rest @ ..] => { // TODO: add all utf8 whitespaces
-                    self.source = rest;
+                    self.update_source(rest);
                     count += 1;
                 },
                 _ => break,
@@ -113,19 +153,36 @@ impl<'source> Scanner<'source> {
 
     pub fn scan_line(&mut self) -> ScanResult {
 
+        // ignore all empty lines
+        loop {
+            match self.source {
+                [b'\n', ref rest @ ..] => {
+                    self.update_source(rest);
+                    self.next_line();
+                },
+                [] => {
+                    self.eof = true;
+                    return Ok(());
+                }
+                _ => break,
+            }
+        }
+
         self.skip_whitespaces(0)?;
 
-        let (target, rest) = match self.source {
-            [t, ref rest @ ..] => (t, rest),
+        let token = match self.source {
+            [token, ref rest @ ..] => {
+                self.update_source(rest);
+                token
+            },
             [] => {
                 self.eof = true;
                 return Ok(());
             },
         };
 
-        self.source = rest;
 
-        match target {
+        match token {
             b'#' => self.scan_line_header()?,
             b'-' => self.scan_line_variable()?,
             _ => panic!("Invalid token!"),
@@ -137,14 +194,13 @@ impl<'source> Scanner<'source> {
     }
 
     pub fn scan_line_variable(&mut self) -> ScanResult {
-        self.push_token(Token(TokenType::Dash));
+        self.push_token(TokenType::Dash);
         self.skip_whitespaces(1)?;
         self.scan_token_key()?;
         self.skip_whitespaces(0)?;
         self.scan_token_colon()?;
         self.skip_whitespaces(0)?;
         self.scan_value()?;
-        // self.end_of_line()?;
 
         Ok(())
     }
@@ -158,7 +214,7 @@ impl<'source> Scanner<'source> {
                 },
                 [b, ref rest @ ..] => {
                     value.push(*b as char);
-                    self.source = rest;
+                    self.update_source(rest);
                 },
                 _ => break, // TODO: ?
             }
@@ -168,18 +224,20 @@ impl<'source> Scanner<'source> {
             panic!("value is empty");
         }
 
-        self.push_token(Token(TokenType::String(value)));
+        self.push_token(TokenType::String(value));
 
         Ok(())
     }
 
     pub fn scan_token_colon(&mut self) -> ScanResult {
         match self.source {
-            [b':', ref rest @ ..] => self.source = rest,
+            [b':', ref rest @ ..] => {
+                self.update_source(rest);
+            },
             _ => panic!("expecting colon"),
         }
 
-        self.push_token(Token(TokenType::Colon));
+        self.push_token(TokenType::Colon);
 
         Ok(())
     }
@@ -197,15 +255,15 @@ impl<'source> Scanner<'source> {
         loop {
             match self.source {
                 [b'#', ref rest @ ..] => {
-                    self.source = rest;
                     count += 1;
+                    self.update_source(rest);
                 },
                 [b' ',  ..] => break,
                 [b'\n', ..] => break,
                 _ => panic!("expecting header!"),
             }
         }
-        self.push_token(Token(TokenType::Header(count)));
+        self.push_token(TokenType::Header(count));
 
         Ok(())
     }
@@ -217,21 +275,23 @@ impl<'source> Scanner<'source> {
                 [b':', ref _rest @ ..] => {
                     break;
                 },
+                [b' ', ref _rest @ ..] => {
+                    break;
+                },
                 [b, ref rest @ ..] => {
                     name.push(*b as char);
-                    self.source = rest;
+                    self.update_source(rest);
                 },
                 _ => panic!("expecting key"),
             }
         }
-        self.push_token(Token(TokenType::Key(name)));
+        self.push_token(TokenType::Key(name));
 
         Ok(())
     }
 
     pub fn scan_token_class(&mut self) -> ScanResult {
         let mut name = String::new();
-        self.get_source();
         loop {
             match self.source {
                 [b'\n', ref _rest @ ..] => {
@@ -239,7 +299,7 @@ impl<'source> Scanner<'source> {
                 },
                 [b, ref rest @ ..] => {
                     name.push(*b as char);
-                    self.source = rest;
+                    self.update_source(rest);
                 },
                 _ => break,
             }
@@ -249,7 +309,7 @@ impl<'source> Scanner<'source> {
             panic!("class is empty");
         }
 
-        self.push_token(Token(TokenType::Class(name)));
+        self.push_token(TokenType::Class(name));
 
         Ok(())
     }
@@ -258,7 +318,10 @@ impl<'source> Scanner<'source> {
         self.skip_whitespaces(0)?;
         match self.source {
 
-            [b'\n', ref rest @ ..] => self.source = rest,
+            [b'\n', ref rest @ ..] => {
+                self.next_line();
+                self.source = rest
+            },
             [] => {
                 println!("end of file");
                 self.eof = true;
@@ -279,30 +342,177 @@ mod tests {
 
     #[test]
     fn header_line() {
+        //          1234567
         let text = "# Title";
         let mut scanner = Scanner::new(&text);
         let _ = scanner.scan_line();
         assert_eq!(
             scanner.buffer,
             vec![
-                Token(TokenType::Header(1)),
-                Token(TokenType::Class("Title".to_string())),
+                Token(
+                    TokenType::Header(1),
+                        Marker{ line: 1, col: 1 },
+                        Marker{ line: 1, col: 1 }
+                ),
+                Token(
+                    TokenType::Class("Title".to_string()),
+                        Marker{ line: 1, col: 3 },
+                        Marker{ line: 1, col: 7 }
+                ),
             ]
         )
     }
 
     #[test]
     fn varible_line_string() {
+        //          0        1
+        //          123456789012
         let text = "- key: value";
         let mut scanner = Scanner::new(&text);
         let _ = scanner.scan_line();
         assert_eq!(
             scanner.buffer,
             vec![
-                Token(TokenType::Dash),
-                Token(TokenType::Key("key".to_string())),
-                Token(TokenType::Colon),
-                Token(TokenType::String("value".to_string())),
+                Token(
+                    TokenType::Dash,
+                        Marker{ line: 1, col: 1 },
+                        Marker{ line: 1, col: 1 },
+                ),
+                Token(
+                    TokenType::Key("key".to_string()),
+                        Marker{ line: 1, col: 3 },
+                        Marker{ line: 1, col: 5 },
+                ),
+                Token(
+                    TokenType::Colon,
+                        Marker{ line: 1, col: 6 },
+                        Marker{ line: 1, col: 6 },
+                ),
+                Token(
+                    TokenType::String("value".to_string()),
+                        Marker{ line: 1, col: 8 },
+                        Marker{ line: 1, col: 12 },
+                ),
+            ]
+        )
+    }
+
+    #[test]
+    fn count_spaces() {
+        //          0        1
+        //          12345678901234
+        let text = " - key : value";
+        let mut scanner = Scanner::new(&text);
+        let _ = scanner.scan_line();
+        assert_eq!(
+            scanner.buffer,
+            vec![
+                Token(
+                    TokenType::Dash,
+                        Marker{ line: 1, col: 2 },
+                        Marker{ line: 1, col: 2 },
+                ),
+                Token(
+                    TokenType::Key("key".to_string()),
+                        Marker{ line: 1, col: 4 },
+                        Marker{ line: 1, col: 6 },
+                ),
+                Token(
+                    TokenType::Colon,
+                        Marker{ line: 1, col: 8 },
+                        Marker{ line: 1, col: 8 },
+                ),
+                Token(
+                    TokenType::String("value".to_string()),
+                        Marker{ line: 1, col: 10 },
+                        Marker{ line: 1, col: 14 },
+                ),
+            ]
+        )
+    }
+
+    #[test]
+    fn multiple_lines() {
+        let text = "# Title\n- key: value";
+        let mut scanner = Scanner::new(&text);
+        let _ = scanner.scan_line();
+        let _ = scanner.scan_line();
+        assert_eq!(
+            scanner.buffer,
+            vec![
+                Token(
+                    TokenType::Header(1),
+                        Marker{ line: 1, col: 1 },
+                        Marker{ line: 1, col: 1 }
+                ),
+                Token(
+                    TokenType::Class("Title".to_string()),
+                        Marker{ line: 1, col: 3 },
+                        Marker{ line: 1, col: 7 }
+                ),
+                Token(
+                    TokenType::Dash,
+                        Marker{ line: 2, col: 1 },
+                        Marker{ line: 2, col: 1 },
+                ),
+                Token(
+                    TokenType::Key("key".to_string()),
+                        Marker{ line: 2, col: 3 },
+                        Marker{ line: 2, col: 5 },
+                ),
+                Token(
+                    TokenType::Colon,
+                        Marker{ line: 2, col: 6 },
+                        Marker{ line: 2, col: 6 },
+                ),
+                Token(
+                    TokenType::String("value".to_string()),
+                        Marker{ line: 2, col: 8 },
+                        Marker{ line: 2, col: 12 },
+                ),
+            ]
+        )
+    }
+
+    #[test]
+    fn skip_empty_lines() {
+        let text = "# Title\n\n- key: value";
+        let mut scanner = Scanner::new(&text);
+        let _ = scanner.scan_line();
+        let _ = scanner.scan_line();
+        assert_eq!(
+            scanner.buffer,
+            vec![
+                Token(
+                    TokenType::Header(1),
+                        Marker{ line: 1, col: 1 },
+                        Marker{ line: 1, col: 1 }
+                ),
+                Token(
+                    TokenType::Class("Title".to_string()),
+                        Marker{ line: 1, col: 3 },
+                        Marker{ line: 1, col: 7 }
+                ),
+                Token(
+                    TokenType::Dash,
+                        Marker{ line: 3, col: 1 },
+                        Marker{ line: 3, col: 1 },
+                ),
+                Token(
+                    TokenType::Key("key".to_string()),
+                        Marker{ line: 3, col: 3 },
+                        Marker{ line: 3, col: 5 },
+                ),
+                Token(
+                    TokenType::Colon,
+                        Marker{ line: 3, col: 6 },
+                        Marker{ line: 3, col: 6 },
+                ),
+                Token(
+                    TokenType::String("value".to_string()),
+                        Marker{ line: 3, col: 8 },
+                        Marker{ line: 3, col: 12 },
+                ),
             ]
         )
     }

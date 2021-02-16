@@ -17,7 +17,7 @@ impl<'source> Parser<'source> {
 
     pub fn parse_token_header(&mut self) -> Result<usize, ()> {
         let level = match self.scanner.take_token()? {
-            Some(Token(TokenType::Header(n))) => n,
+            Some(Token(TokenType::Header(n), _, _)) => n,
             _ => panic!("expecting header level"),
         };
 
@@ -26,8 +26,8 @@ impl<'source> Parser<'source> {
 
     pub fn parse_token_identifier(&mut self) -> Result<String, ()> {
         let identifier = match self.scanner.take_token()? {
-            Some(Token(TokenType::Class(c))) => c,
-            Some(Token(TokenType::Key(c)))   => c,
+            Some(Token(TokenType::Class(c), _, _)) => c,
+            Some(Token(TokenType::Key(c), _, _))   => c,
             _ => panic!("expecting identifier"),
         };
 
@@ -44,7 +44,7 @@ impl<'source> Parser<'source> {
         let mut entry = Entry::new(class, level);
 
         // loop for variables
-        while let Some(Token(TokenType::Dash)) = self.scanner.take_token()? {
+        while let Some(Token(TokenType::Dash, _, _)) = self.scanner.take_token()? {
             let result = self.parse_variable()?;
             match result {
                 Some(var) => entry.push_variable(var),
@@ -53,7 +53,7 @@ impl<'source> Parser<'source> {
         }
 
         // loop for subentries
-        if let Some(Token(TokenType::Header(next_level))) = self.scanner.take_token()? {
+        if let Some(Token(TokenType::Header(next_level), _, _)) = self.scanner.take_token()? {
             println!("{}", next_level);
         }
 
@@ -69,7 +69,7 @@ impl<'source> Parser<'source> {
         self.parse_symbol(TokenType::Colon)?;
 
         let value = match self.scanner.take_token()? {
-            Some(Token(TokenType::String(v))) => v,
+            Some(Token(TokenType::String(v), _, _)) => v,
             _ => panic!("expecting value"),
         };
 
