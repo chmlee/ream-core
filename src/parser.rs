@@ -26,8 +26,8 @@ impl<'source> Parser<'source> {
 
     pub fn parse_token_identifier(&mut self) -> Result<String, ()> {
         let identifier = match self.scanner.take_token()? {
-            Some(Token(TokenType::Class(c), _, _)) => c,
-            Some(Token(TokenType::Key(c), _, _))   => c,
+            Some(Token(TokenType::Class(c), _, _))
+            | Some(Token(TokenType::Key(c), _, _))   => c,
             _ => panic!("expecting identifier"),
         };
 
@@ -45,6 +45,7 @@ impl<'source> Parser<'source> {
 
         // loop for variables
         while let Some(Token(TokenType::Dash, _, _)) = self.scanner.take_token()? {
+            println!("{:?}", self.scanner.buffer);
             let result = self.parse_variable()?;
             match result {
                 Some(var) => entry.push_variable(var),
@@ -52,12 +53,21 @@ impl<'source> Parser<'source> {
             }
         }
 
+        println!("{:?}", self.scanner.buffer);
         // loop for subentries
+        let mut subentries: Vec<Entry> = vec![];
         if let Some(Token(TokenType::Header(next_level), _, _)) = self.scanner.take_token()? {
-            println!("{}", next_level);
+            if next_level == self.level + 1 {
+                // TODO: use ok_or_else
+                let subentry = match self.parse_entry()? {
+                    Some(sub) => sub,
+                    None => panic!("expecting subentry"),
+                };
+                subentries.push(subentry);
+            }
+            println!("{:?}", &subentries);
+            entry.subentries = subentries;
         }
-
-
 
         Ok(Some(entry))
     }
@@ -66,7 +76,7 @@ impl<'source> Parser<'source> {
 
         let key = self.parse_token_identifier()?;
 
-        self.parse_symbol(TokenType::Colon)?;
+        self.parse_symbol_colon()?;
 
         let value = match self.scanner.take_token()? {
             Some(Token(TokenType::String(v), _, _)) => v,
@@ -76,20 +86,12 @@ impl<'source> Parser<'source> {
         Ok(Some(Variable::new(key, Value::String(value))))
     }
 
-    pub fn parse_symbol(&mut self, tt: TokenType) -> Result<(),()> {
+    pub fn parse_symbol_colon(&mut self) -> Result<(),()> {
         match self.scanner.take_token()? {
-            Some(tt) => Ok(()),
-            _ => panic!("expecting symbol {:?}", tt),
+            Some(Token(TokenType::Colon, _, _)) => Ok(()),
+            _ => panic!("expecting Colon"),
         }
     }
-
-
-
-
-
-
-
-
 
 
 }

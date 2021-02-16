@@ -75,13 +75,13 @@ impl<'source> Scanner<'source> {
     }
 
     pub fn next_col(&mut self, f: &str) {
-        self.get_source();
-        println!("{:?} after {}", self.get_loc(), f);
+        // self.get_source();
+        // println!("{:?} after {}", self.get_loc(), f);
         self.loc.col += 1;
     }
 
     pub fn next_line(&mut self) {
-        self.get_source();
+        // self.get_source();
         // println!("{:?}", self.get_loc());
         self.loc.col = 0;
         self.loc.line += 1;
@@ -128,7 +128,6 @@ impl<'source> Scanner<'source> {
         }
 
         let token = self.buffer.pop_front();
-        // println!("{:?}", token);
         Ok(token)
     }
 

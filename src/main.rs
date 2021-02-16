@@ -22,7 +22,7 @@ fn main() {
 
     let result = parser.parse_entry().unwrap().ok_or_else(|| panic!("a"));
 
-    println!("{:#?}", &file);
+    // println!("{:#?}", &file);
     println!("{:#?}", &result);
 
     // let se = serde_json::to_string_pretty(&result).unwrap();
