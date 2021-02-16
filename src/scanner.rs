@@ -118,6 +118,19 @@ impl<'source> Scanner<'source> {
         self.buffer.push_back(Token(tt, start, end));
     }
 
+    pub fn peek_token(&mut self) -> Result<Option<&Token>, ()> {
+        if self.buffer.is_empty() {
+            if self.eof {
+                return Ok(None);   // End of File
+            } else {
+                self.scan_line()?; // add tokens to buffer
+            }
+        }
+
+        let token_option = self.buffer.front();
+        Ok(token_option)
+    }
+
     pub fn take_token(&mut self) -> Result<Option<Token>, ()> {
         if self.buffer.is_empty() {
             if self.eof {
@@ -127,8 +140,8 @@ impl<'source> Scanner<'source> {
             }
         }
 
-        let token = self.buffer.pop_front();
-        Ok(token)
+        let token_option = self.buffer.pop_front();
+        Ok(token_option)
     }
 
     pub fn skip_whitespaces(&mut self, min: usize) -> ScanResult {

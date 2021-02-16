@@ -44,7 +44,8 @@ impl<'source> Parser<'source> {
         let mut entry = Entry::new(class, level);
 
         // loop for variables
-        while let Some(Token(TokenType::Dash, _, _)) = self.scanner.take_token()? {
+        while let Some(Token(TokenType::Dash, _, _)) = self.scanner.peek_token()? {
+            self.scanner.take_token()?;
             println!("{:?}", self.scanner.buffer);
             let result = self.parse_variable()?;
             match result {
@@ -54,20 +55,24 @@ impl<'source> Parser<'source> {
         }
 
         println!("{:?}", self.scanner.buffer);
+
         // loop for subentries
         let mut subentries: Vec<Entry> = vec![];
-        if let Some(Token(TokenType::Header(next_level), _, _)) = self.scanner.take_token()? {
-            if next_level == self.level + 1 {
-                // TODO: use ok_or_else
+        while let Some(Token(TokenType::Header(next_level), _, _)) = self.scanner.peek_token()? {
+            if *next_level == self.level + 1 {               // child
                 let subentry = match self.parse_entry()? {
                     Some(sub) => sub,
                     None => panic!("expecting subentry"),
                 };
                 subentries.push(subentry);
+            } else if *next_level <= self.level {
+                self.level -= 1;
+                break;
+            } else {
+                panic!("wrong level of entry");
             }
-            println!("{:?}", &subentries);
-            entry.subentries = subentries;
         }
+        entry.subentries = subentries;
 
         Ok(Some(entry))
     }
