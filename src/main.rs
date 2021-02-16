@@ -5,27 +5,45 @@ mod ream;
 use scanner::*;
 use parser::*;
 use std::{env, fs};
+use clap::{Arg, App};
 
 fn main() {
 
-    let args: Vec<String> = env::args().collect();
+    let matches = App::new("REAM Core")
+        .version("0.1.0")
+        .author("Chih-Ming Louis Lee <louis@chihminglee.com>")
+        .about("Ream encoder and decoder")
+        .arg(
+            Arg::new("input")
+                .long("input")
+                .short('i')
+                .value_name("FILE")
+                .takes_value(true)
+        )
+        .arg(
+            Arg::new("format")
+                .long("format")
+                .short('f')
+                .takes_value(true)
+                .possible_values(&[
+                    "Json",
+                ])
+        )
+        .get_matches();
 
-    let path = if args.len() == 2 {
-        &args[1]
-    } else {
-        "./example/test.md"
+    let path = match matches.value_of("input") {
+        Some(p) => p,
+        _ => "./example/test.md",
     };
 
     let file = fs::read_to_string(path).unwrap();
-
     let mut parser = Parser::new(&file);
 
-    let result = parser.parse_entry().unwrap().ok_or_else(|| panic!("a"));
-
-    // println!("{:#?}", &file);
-    println!("{:#?}", &result);
-
-    // let se = serde_json::to_string_pretty(&result).unwrap();
-    // println!("{}", &se);
-
+    match matches.value_of("format") {
+        _ => {
+            let result = parser.parse_entry().unwrap().ok_or_else(|| panic!("something went wrong"));
+            let se = serde_json::to_string_pretty(&result).unwrap();
+            println!("{}", &se);
+        },
+    };
 }

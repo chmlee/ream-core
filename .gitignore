@@ -1,2 +1,6 @@
 /target
 /example
+
+# bench files
+/bench/input
+/bench/output
