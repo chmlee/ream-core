@@ -35,6 +35,7 @@ impl<'source> Parser<'source> {
     }
 
     pub fn parse_entry(&mut self) -> ParseEntryResult {
+        println!("parsing new entry");
 
         let level = self.parse_token_header()?;
         self.level = level;
@@ -46,7 +47,7 @@ impl<'source> Parser<'source> {
         // loop for variables
         while let Some(Token(TokenType::Dash, _, _)) = self.scanner.peek_token()? {
             self.scanner.take_token()?;
-            println!("{:?}", self.scanner.buffer);
+            // println!("{:?}", self.scanner.buffer);
             let result = self.parse_variable()?;
             match result {
                 Some(var) => entry.push_variable(var),
@@ -54,7 +55,7 @@ impl<'source> Parser<'source> {
             }
         }
 
-        println!("{:?}", self.scanner.buffer);
+        // println!("{:?}", self.scanner.buffer);
 
         // loop for subentries
         let mut subentries: Vec<Entry> = vec![];
