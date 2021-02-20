@@ -15,7 +15,7 @@ impl<'source> Parser<'source> {
         }
     }
 
-    pub fn parse_token_header(&mut self) -> Result<usize, ()> {
+    pub fn parse_token_header(&mut self) -> Result<usize, ScanError> {
         let level = match self.scanner.take_token()? {
             Some(Token(TokenType::Header(n), _, _)) => n,
             _ => panic!("expecting header level"),
@@ -24,7 +24,7 @@ impl<'source> Parser<'source> {
         Ok(level)
     }
 
-    pub fn parse_token_identifier(&mut self) -> Result<String, ()> {
+    pub fn parse_token_identifier(&mut self) -> Result<String, ScanError> {
         let identifier = match self.scanner.take_token()? {
             Some(Token(TokenType::Class(c), _, _))
             | Some(Token(TokenType::Key(c), _, _))   => c,
@@ -92,7 +92,7 @@ impl<'source> Parser<'source> {
         Ok(Some(Variable::new(key, Value::String(value))))
     }
 
-    pub fn parse_symbol_colon(&mut self) -> Result<(),()> {
+    pub fn parse_symbol_colon(&mut self) -> Result<(),ScanError> {
         match self.scanner.take_token()? {
             Some(Token(TokenType::Colon, _, _)) => Ok(()),
             _ => panic!("expecting Colon"),

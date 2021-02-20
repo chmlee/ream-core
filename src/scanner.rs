@@ -49,7 +49,31 @@ pub enum TokenType {
     // Error,
 }
 
-type ScanResult = Result<(), ()>;
+pub enum ScanErrorKind {
+    InvalidToken{ expect: Vec<TokenType>, got: u8 },
+}
+
+impl fmt::Debug for ScanErrorKind {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match &*self {
+            ScanErrorKind::InvalidToken{ expect, got } => {
+                write!(f, "expecting {:?}, got {:?}", expect, got)
+            }
+        }
+    }
+}
+
+
+
+
+
+#[derive(Debug)]
+pub struct ScanError {
+    // mark: Marker,
+    kind: ScanErrorKind,
+}
+
+type ScanResult = Result<(), ScanError>;
 
 #[derive(Debug, Clone)]
 pub struct Scanner<'source>  {
@@ -118,7 +142,7 @@ impl<'source> Scanner<'source> {
         self.buffer.push_back(Token(tt, start, end));
     }
 
-    pub fn peek_token(&mut self) -> Result<Option<&Token>, ()> {
+    pub fn peek_token(&mut self) -> Result<Option<&Token>, ScanError> {
         if self.buffer.is_empty() {
             if self.eof {
                 return Ok(None);   // End of File
@@ -131,7 +155,7 @@ impl<'source> Scanner<'source> {
         Ok(token_option)
     }
 
-    pub fn take_token(&mut self) -> Result<Option<Token>, ()> {
+    pub fn take_token(&mut self) -> Result<Option<Token>, ScanError> {
         if self.buffer.is_empty() {
             if self.eof {
                 return Ok(None);   // End of File
@@ -205,6 +229,15 @@ impl<'source> Scanner<'source> {
         Ok(())
     }
 
+    pub fn scan_line_header(&mut self) -> ScanResult {
+        self.scan_token_header()?;
+        self.skip_whitespaces(1)?;
+        self.scan_token_class()?;
+
+        Ok(())
+    }
+
+
     pub fn scan_line_variable(&mut self) -> ScanResult {
         self.push_token(TokenType::Dash);
         self.skip_whitespaces(1)?;
@@ -254,14 +287,6 @@ impl<'source> Scanner<'source> {
         Ok(())
     }
 
-    pub fn scan_line_header(&mut self) -> ScanResult {
-        self.scan_token_header()?;
-        self.skip_whitespaces(1)?;
-        self.scan_token_class()?;
-
-        Ok(())
-    }
-
     pub fn scan_token_header(&mut self) -> ScanResult {
         let mut count = 1;
         loop {
@@ -270,9 +295,10 @@ impl<'source> Scanner<'source> {
                     count += 1;
                     self.update_source(rest);
                 },
-                [b' ',  ..] => break,
+                [b' ' , ..] => break,
                 [b'\n', ..] => break,
-                _ => panic!("expecting header!"),
+                [other, ..]=> return Err(ScanError{ kind: ScanErrorKind::InvalidToken{ expect: vec![TokenType::Header(1)], got: other.to_owned() } }),
+                _ => unreachable!(),
             }
         }
         self.push_token(TokenType::Header(count));

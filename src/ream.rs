@@ -1,4 +1,5 @@
 use serde::{Serialize, Deserialize};
+use crate::scanner::ScanError;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Entry {
@@ -45,7 +46,7 @@ pub enum Value {
 
 macro_rules! result_type {
     ($name:ident, $result:ty) => {
-        pub type $name = Result<Option<$result>, ()>;
+        pub type $name = Result<Option<$result>, ScanError>;
     };
 }
 
