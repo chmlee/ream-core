@@ -41,11 +41,6 @@ pub enum TokenType {
     Colon,
     Dash,
     Star,
-
-    // WhiteSpace(usize),
-    // LineBreak(usize),
-
-    // Error,
 }
 
 pub enum ScanErrorKind {
