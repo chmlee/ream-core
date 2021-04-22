@@ -136,7 +136,6 @@ impl<'source> Scanner<'source> {
             TokenType::Class(s)
             | TokenType::Key(s)
             | TokenType::String(s)   => col - s.len() + 1,
-            TokenType::Type(s)       => col - s.len() - 1,
             _ => col,
         };
         let start = Marker::new(line, col);
@@ -246,7 +245,7 @@ impl<'source> Scanner<'source> {
         self.skip_whitespaces(1)?;
         self.scan_token_key()?;
         self.skip_whitespaces(0)?;
-        self.scan_token_value_type()?;
+        self.scan_token_type()?;
         self.skip_whitespaces(0)?;
         self.scan_token_colon()?;
         self.skip_whitespaces(0)?;
@@ -255,28 +254,8 @@ impl<'source> Scanner<'source> {
         Ok(())
     }
 
-    pub fn scan_token_value_type(&mut self) -> ScanResult {
-        match self.source {
-            [b'(', rest @ ..] => {
-                self.update_source(rest);
-                let mut typ = String::new();
-                loop {
-                    match self.source {
-                        [b')', ref rest @ ..] => {
-                            self.update_source(rest);
-                            break;
-                        },
-                        [b, ref rest @ ..] => {
-                            typ.push(*b as char);
-                            self.update_source(rest);
-                        },
-                        _ => {},
-                    }
-                }
-                self.push_token(TokenType::Type(typ));
-            },
-            _ => {}
-        }
+    pub fn scan_token_type(&mut self) -> ScanResult {
+
         Ok(())
     }
 
@@ -284,7 +263,7 @@ impl<'source> Scanner<'source> {
         let mut value = String::new();
         loop {
             match self.source {
-                [b'\n', ref _rest @ ..] => {
+                [b'\n', ref rest @ ..] => {
                     break;
                 },
                 [b, ref rest @ ..] => {
@@ -460,45 +439,6 @@ mod tests {
                     TokenType::String("value".to_string()),
                         Marker{ line: 1, col: 8 },
                         Marker{ line: 1, col: 12 },
-                ),
-            ]
-        )
-    }
-
-    #[test]
-    fn varible_line_string_with_type() {
-        //          0        1
-        //          1234567890123456789
-        let text = "- key (type): value";
-        let mut scanner = Scanner::new(&text);
-        let _ = scanner.scan_line();
-        assert_eq!(
-            scanner.buffer,
-            vec![
-                Token(
-                    TokenType::Dash,
-                        Marker{ line: 1, col: 1 },
-                        Marker{ line: 1, col: 1 },
-                ),
-                Token(
-                    TokenType::Key("key".to_string()),
-                        Marker{ line: 1, col: 3 },
-                        Marker{ line: 1, col: 5 },
-                ),
-                Token(
-                    TokenType::Type("type".to_string()),
-                        Marker{ line: 1, col: 7 },
-                        Marker{ line: 1, col: 12 },
-                ),
-                Token(
-                    TokenType::Colon,
-                        Marker{ line: 1, col: 13 },
-                        Marker{ line: 1, col: 13 },
-                ),
-                Token(
-                    TokenType::String("value".to_string()),
-                        Marker{ line: 1, col: 15 },
-                        Marker{ line: 1, col: 19 },
                 ),
             ]
         )
