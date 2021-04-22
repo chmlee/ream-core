@@ -82,14 +82,42 @@ impl<'source> Parser<'source> {
 
         let key = self.parse_token_identifier()?;
 
-        self.parse_symbol_colon()?;
 
-        let value = match self.scanner.take_token()? {
-            Some(Token(TokenType::String(v), _, _)) => v,
+        let mut typ = match self.scanner.take_token()? {
+            Some(Token(TokenType::Type(t), _, _)) => {
+                self.parse_symbol_colon()?;
+                let t = match t.as_str() {
+                    "str" => ValueType::Str,
+                    "num" => ValueType::Num,
+                    "bool" => ValueType::Bool,
+                    _ => panic!("unidentified type"),
+                };
+                t
+            },
+            Some(Token(TokenType::Colon, _, _)) => {
+                ValueType::Unknown
+            },
+            _ => {
+                panic!("unexpected token");
+            }
+        };
+
+        let val = match self.scanner.take_token()? {
+            Some(Token(TokenType::Value(v), _, _)) => v,
             _ => panic!("expecting value"),
         };
 
-        Ok(Some(Variable::new(key, Value::String(value))))
+        typ = match typ {
+            ValueType::Unknown => {
+                check_unknown_value_type(&val)?
+            },
+            t => {
+                validate_known_value_type(&val, &t)?;
+                t
+            }
+        };
+
+        Ok(Some(Variable::new(key, typ, val)))
     }
 
     pub fn parse_symbol_colon(&mut self) -> Result<(),ScanError> {

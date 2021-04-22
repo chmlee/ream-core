@@ -36,9 +36,7 @@ pub enum TokenType {
     Key(String),
 
     Type(String),
-    String(String),
-    Number(String),
-    Boolean(bool),
+    Value(String),
 
     Colon,
     Dash,
@@ -99,9 +97,7 @@ impl<'source> Scanner<'source> {
         }
     }
 
-    pub fn next_col(&mut self, f: &str) {
-        // self.get_source();
-        // println!("{:?} after {}", self.get_loc(), f);
+    pub fn next_col(&mut self) {
         self.loc.col += 1;
     }
 
@@ -122,7 +118,7 @@ impl<'source> Scanner<'source> {
 
     pub fn update_source(&mut self, rest: &'source [u8]) {
         self.source = rest;
-        self.next_col("update");
+        self.next_col();
     }
 
     pub fn push_token(&mut self, tt: TokenType) {
@@ -135,7 +131,7 @@ impl<'source> Scanner<'source> {
             TokenType::Header(n)     => col - n + 1,
             TokenType::Class(s)
             | TokenType::Key(s)
-            | TokenType::String(s)   => col - s.len() + 1,
+            | TokenType::Value(s)   => col - s.len() + 1,
             TokenType::Type(s)       => col - s.len() - 1,
             _ => col,
         };
@@ -299,7 +295,7 @@ impl<'source> Scanner<'source> {
             panic!("value is empty");
         }
 
-        self.push_token(TokenType::String(value));
+        self.push_token(TokenType::Value(value));
 
         Ok(())
     }
@@ -457,7 +453,7 @@ mod tests {
                         Marker{ line: 1, col: 6 },
                 ),
                 Token(
-                    TokenType::String("value".to_string()),
+                    TokenType::Value("value".to_string()),
                         Marker{ line: 1, col: 8 },
                         Marker{ line: 1, col: 12 },
                 ),
@@ -496,7 +492,7 @@ mod tests {
                         Marker{ line: 1, col: 13 },
                 ),
                 Token(
-                    TokenType::String("value".to_string()),
+                    TokenType::Value("value".to_string()),
                         Marker{ line: 1, col: 15 },
                         Marker{ line: 1, col: 19 },
                 ),
@@ -530,7 +526,7 @@ mod tests {
                         Marker{ line: 1, col: 8 },
                 ),
                 Token(
-                    TokenType::String("value".to_string()),
+                    TokenType::Value("value".to_string()),
                         Marker{ line: 1, col: 10 },
                         Marker{ line: 1, col: 14 },
                 ),
@@ -573,7 +569,7 @@ mod tests {
                         Marker{ line: 2, col: 6 },
                 ),
                 Token(
-                    TokenType::String("value".to_string()),
+                    TokenType::Value("value".to_string()),
                         Marker{ line: 2, col: 8 },
                         Marker{ line: 2, col: 12 },
                 ),
@@ -616,7 +612,7 @@ mod tests {
                         Marker{ line: 3, col: 6 },
                 ),
                 Token(
-                    TokenType::String("value".to_string()),
+                    TokenType::Value("value".to_string()),
                         Marker{ line: 3, col: 8 },
                         Marker{ line: 3, col: 12 },
                 ),
