@@ -9,8 +9,9 @@
       import init, {add, ream2json} from "./pkg/ream_core.js";
       init()
         .then(() => {
-          console.log(add(1,2))
-          console.log(ream2json("# test"))
+          console.log(add(1,2));
+          let text = ream2json("# test");
+          console.log(JSON.parse(text));
         });
       </script>
   </body>
