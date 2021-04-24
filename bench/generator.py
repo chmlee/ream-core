@@ -3,8 +3,8 @@
 import os
 
 string = 'ream'
-number = '$3.14159$'
-boolean = '`FALSE`'
+number = '3.14159'
+boolean = 'FALSE'
 
 if not os.path.exists('./input'):
     os.makedirs('./input')
