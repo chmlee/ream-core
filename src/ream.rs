@@ -8,64 +8,64 @@ pub struct Entry {
     pub class: String,
     pub level: usize,
 
-    pub variables: VariableVec,
-    pub subentries: EntryVec,
+    pub variables: Vec<Variable>,
+    pub subentries: Vec<Entry>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct VariableVec {
-    content: Vec<Variable>,
-}
+// #[derive(Debug, Clone, Serialize, Deserialize)]
+// pub struct VariableVec {
+//     content: Vec<Variable>,
+// }
 
-impl VariableVec {
-    pub fn new() -> VariableVec {
-        VariableVec {
-            content: vec![],
-        }
-    }
+// impl VariableVec {
+//     pub fn new() -> VariableVec {
+//         VariableVec {
+//             content: vec![],
+//         }
+//     }
 
-    pub fn push(&mut self, var: Variable) {
-        self.content.push(var);
-    }
+//     pub fn push(&mut self, var: Variable) {
+//         self.content.push(var);
+//     }
 
-    pub fn len(&self) -> usize {
-        self.content.len()
-    }
+//     pub fn len(&self) -> usize {
+//         self.content.len()
+//     }
 
-    pub fn get_index(&self, i: usize) -> Variable {
-        self.content[i].to_owned()
-    }
-}
+//     pub fn get_index(&self, i: usize) -> Variable {
+//         self.content[i].to_owned()
+//     }
+// }
 
-impl IntoIterator for VariableVec {
-    type Item = Variable;
-    type IntoIter = VariableVecIntoIterator;
+// impl IntoIterator for VariableVec {
+//     type Item = Variable;
+//     type IntoIter = VariableVecIntoIterator;
 
-    fn into_iter(self) -> Self::IntoIter {
-        VariableVecIntoIterator {
-            items: self,
-            index: 0,
-        }
-    }
-}
+//     fn into_iter(self) -> Self::IntoIter {
+//         VariableVecIntoIterator {
+//             items: self,
+//             index: 0,
+//         }
+//     }
+// }
 
-pub struct VariableVecIntoIterator {
-    items: VariableVec,
-    index: usize,
-}
+// pub struct VariableVecIntoIterator {
+//     items: VariableVec,
+//     index: usize,
+// }
 
-impl Iterator for VariableVecIntoIterator {
-    type Item = Variable;
-    fn next(&mut self) -> Option<Variable> {
-        let result = if self.index < self.items.len() {
-            Some(self.items.get_index(self.index))
-        } else {
-            None
-        };
-        self.index += 1;
-        result
-    }
-}
+// impl Iterator for VariableVecIntoIterator {
+//     type Item = Variable;
+//     fn next(&mut self) -> Option<Variable> {
+//         let result = if self.index < self.items.len() {
+//             Some(self.items.get_index(self.index))
+//         } else {
+//             None
+//         };
+//         self.index += 1;
+//         result
+//     }
+// }
 
 impl Entry {
     pub fn new(class: String, level: usize) -> Self {
@@ -73,8 +73,8 @@ impl Entry {
             class,
             level,
 
-            variables: VariableVec::new(),
-            subentries: EntryVec::new(),
+            variables: vec![],
+            subentries: vec![],
         }
     }
 
@@ -82,35 +82,35 @@ impl Entry {
         self.variables.push(variable);
     }
 
-    pub fn get_variable_values(&self) -> Vec<String> {
-        let output: Vec<String> = self.variables.to_owned()
-            .into_iter()
-            .map(|item| item.get_value())
-            .collect();
+    // pub fn get_variable_values(&self) -> Vec<String> {
+    //     let output: Vec<String> = self.variables.to_owned()
+    //         .into_iter()
+    //         .map(|item| item.get_value())
+    //         .collect();
 
-        output
-    }
+    //     output
+    // }
 
-    // TODO: must exist a better way to write this >:(
-    pub fn get_subentries(&self) -> Vec<Vec<String>> {
-        let subentry = self.subentries.to_owned();
-        let mut result: Vec<Vec<String>> = vec![];
-        for i in subentry.content {
-            result.push(i.get_variable_values());
+    // // TODO: must exist a better way to write this >:(
+    // pub fn get_subentries(&self) -> Vec<Vec<String>> {
+    //     let subentry = self.subentries.to_owned();
+    //     let mut result: Vec<Vec<String>> = vec![];
+    //     for i in subentry.content {
+    //         result.push(i.get_variable_values());
 
-        }
-        result
-    }
+    //     }
+    //     result
+    // }
 
-    pub fn flatten(&self) -> Vec<Vec<String>> {
-        let mut result: Vec<Vec<String>> = vec![];
-        let parent = self.get_variable_values();
-        let children = self.get_subentries();
-        for child in children {
-            result.push([parent.to_owned(), child].concat());
-        }
-        result
-    }
+    // pub fn flatten(&self) -> Vec<Vec<String>> {
+    //     let mut result: Vec<Vec<String>> = vec![];
+    //     let parent = self.get_variable_values();
+    //     let children = self.get_subentries();
+    //     for child in children {
+    //         result.push([parent.to_owned(), child].concat());
+    //     }
+    //     result
+    // }
 
 }
 
@@ -175,62 +175,62 @@ pub fn validate_known_value_type(val: &String, typ: &ValueType) -> Result<(), Sc
     Ok(())
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct EntryVec {
-    content: Vec<Entry>,
-}
+// #[derive(Debug, Clone, Serialize, Deserialize)]
+// pub struct EntryVec {
+//     content: Vec<Entry>,
+// }
 
-impl EntryVec {
+// impl EntryVec {
 
-    pub fn new() -> Self {
-        EntryVec {
-            content: vec![],
-        }
-    }
+//     pub fn new() -> Self {
+//         EntryVec {
+//             content: vec![],
+//         }
+//     }
 
-    pub fn push(&mut self, entry: Entry) {
-        self.content.push(entry);
-    }
+//     pub fn push(&mut self, entry: Entry) {
+//         self.content.push(entry);
+//     }
 
-    pub fn len(&self) -> usize {
-        self.content.len()
-    }
+//     pub fn len(&self) -> usize {
+//         self.content.len()
+//     }
 
-    pub fn get_index(&self, i: usize) -> Entry {
-        self.content[i].to_owned()
-    }
-}
+//     pub fn get_index(&self, i: usize) -> Entry {
+//         self.content[i].to_owned()
+//     }
+// }
 
-impl IntoIterator for EntryVec {
-    type Item = Entry;
-    type IntoIter = EntryVecIntoIterator;
+// impl IntoIterator for EntryVec {
+//     type Item = Entry;
+//     type IntoIter = EntryVecIntoIterator;
 
-    fn into_iter(self) -> Self::IntoIter {
-        EntryVecIntoIterator {
-            items: self,
-            index: 0,
-        }
-    }
-}
+//     fn into_iter(self) -> Self::IntoIter {
+//         EntryVecIntoIterator {
+//             items: self,
+//             index: 0,
+//         }
+//     }
+// }
 
-#[derive(Debug)]
-pub struct EntryVecIntoIterator {
-    items: EntryVec,
-    index: usize,
-}
+// #[derive(Debug)]
+// pub struct EntryVecIntoIterator {
+//     items: EntryVec,
+//     index: usize,
+// }
 
-impl Iterator for EntryVecIntoIterator {
-    type Item = Entry;
-    fn next(&mut self) -> Option<Entry> {
-        let result = if self.index < self.items.len() {
-            Some(self.items.get_index(self.index))
-        } else {
-            None
-        };
-        self.index += 1;
-        result
-    }
-}
+// impl Iterator for EntryVecIntoIterator {
+//     type Item = Entry;
+//     fn next(&mut self) -> Option<Entry> {
+//         let result = if self.index < self.items.len() {
+//             Some(self.items.get_index(self.index))
+//         } else {
+//             None
+//         };
+//         self.index += 1;
+//         result
+//     }
+// }
 
 // impl FromIterator<Entry> for EntryVecIntoIterator {
 //     fn from_iter<I: IntoIterator<Item=EntryVec>(iter: I) -> Self {

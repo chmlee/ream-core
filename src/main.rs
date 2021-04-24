@@ -21,7 +21,7 @@ fn main() {
 
 
 
-    println!("{:?}", result.flatten());
+    println!("{:?}", result);
 
 
     // let matches = App::new("REAM Core")
