@@ -1,6 +1,6 @@
 use serde::{Serialize, Deserialize};
 use crate::scanner::ScanError;
-use regex::Regex;
+// use regex::Regex;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Entry {
@@ -94,12 +94,28 @@ pub enum ValueType {
     Unknown,
 }
 
+fn is_bool(value: &str) -> bool {
+    match value {
+        "TRUE" => true,
+        "FALSE" => true,
+        _ => false,
+    }
+}
+
+fn is_num(value: &str) -> bool {
+    // let re = Regex::new(r"^[+-]?([0-9]*[.])?[0-9]+$").unwrap();
+    // re.is_match(value)
+    match value.parse::<f64>() {
+        Ok(_) => true,
+        _ => false
+    }
+}
+
+
 pub fn check_unknown_value_type(val: &String) -> Result<ValueType, ScanError> {
-    let bool_re = Regex::new(r"^TRUE|FALSE$").unwrap();
-    let num_re = Regex::new(r"^[+-]?([0-9]*[.])?[0-9]+$").unwrap();
-    if bool_re.is_match(val) {
+    if is_bool(val) {
         Ok(ValueType::Bool)
-    } else if num_re.is_match(val) {
+    } else if is_num(val) {
         Ok(ValueType::Num)
     } else {
         Ok(ValueType::Str)
@@ -107,16 +123,14 @@ pub fn check_unknown_value_type(val: &String) -> Result<ValueType, ScanError> {
 }
 
 pub fn validate_known_value_type(val: &String, typ: &ValueType) -> Result<(), ScanError> {
-    let bool_re = Regex::new(r"^TRUE|FALSE$").unwrap();
-    let num_re = Regex::new(r"^[+-]?([0-9]*[.])?[0-9]+$").unwrap();
     match typ {
         ValueType::Num => {
-            if !num_re.is_match(val) {
+            if !is_num(val) {
                 panic!("not number");
             }
         },
         ValueType::Bool => {
-            if !bool_re.is_match(val) {
+            if !is_bool(val) {
                 panic!("not boolean");
             }
         },
