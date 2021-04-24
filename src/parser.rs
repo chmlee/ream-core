@@ -35,8 +35,6 @@ impl<'source> Parser<'source> {
     }
 
     pub fn parse_entry(&mut self) -> ParseEntryResult {
-        println!("parsing new entry");
-
         let level = self.parse_token_header()?;
         self.level = level;
 
