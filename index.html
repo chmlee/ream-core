@@ -80,10 +80,11 @@ pre {
                 if (format == "csv") {
                   return ream2csv(input)
                 } else if (format == "json") {
-                  return ream2json(input)
+                  let raw = ream2json(input);
+                  return JSON.stringify(JSON.parse(raw), undefined, 2);
                 }
               } catch {
-                return "something is wrong"
+                return "error!"
               }
             }
 
@@ -92,6 +93,7 @@ pre {
                 let input = document.getElementById("input").value;
                 let format = button.id;
                 let output = update(input, format);
+                console.log(1);
                 document.getElementById("output").innerHTML = output;
               })
             });
