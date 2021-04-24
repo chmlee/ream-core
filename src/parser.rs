@@ -58,7 +58,7 @@ impl<'source> Parser<'source> {
         // println!("{:?}", self.scanner.buffer);
 
         // loop for subentries
-        let mut subentries: Vec<Entry> = vec![];
+        let mut subentries = EntryVec::new();
         while let Some(Token(TokenType::Header(next_level), _, _)) = self.scanner.peek_token()? {
             if *next_level == self.level + 1 {               // child
                 let subentry = match self.parse_entry()? {
