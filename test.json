@@ -1,0 +1,1 @@
+{"Ok":{"class":"Country","level":1,"variables":[{"key":"name","typ":"Str","value":"Belgium","annotation":""},{"key":"capital","typ":"Str","value":"Brussels","annotation":""},{"key":"population","typ":"Num","value":"11433256","annotation":""},{"key":"euro_zone","typ":"Bool","value":"TRUE","annotation":""}],"subentries":[]}}

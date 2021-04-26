@@ -443,6 +443,7 @@ impl<'source> Scanner<'source> {
                 panic!("should end line!");
             },
         }
+        println!("end of line!");
 
         Ok(())
     }
@@ -691,5 +692,51 @@ mod tests {
                 ),
             ]
         )
+    }
+
+    #[test]
+    fn variable_with_annotation() {
+        //          0        1    0        1
+        //          1234567890123 12345678901234567
+        let text = "- key: value\n> some annotation";
+        let mut scanner = Scanner::new(&text);
+        let _ = scanner.scan_line();
+        let _ = scanner.scan_line();
+        assert_eq!(
+            scanner.buffer,
+            vec![
+                Token(
+                    TokenType::Dash,
+                        Marker{ line: 1, col: 1 },
+                        Marker{ line: 1, col: 1 },
+                ),
+                Token(
+                    TokenType::Key("key".to_string()),
+                        Marker{ line: 1, col: 3 },
+                        Marker{ line: 1, col: 5 },
+                ),
+                Token(
+                    TokenType::Colon,
+                        Marker{ line: 1, col: 6 },
+                        Marker{ line: 1, col: 6 },
+                ),
+                Token(
+                    TokenType::Value("value".to_string()),
+                        Marker{ line: 1, col: 8 },
+                        Marker{ line: 1, col: 12 },
+                ),
+                Token(
+                    TokenType::Block(1),
+                        Marker{ line: 2, col: 1 },
+                        Marker{ line: 2, col: 1 }
+                ),
+                Token(
+                    TokenType::Annotation("some annotation".to_string()),
+                        Marker{ line: 2, col: 3 },
+                        Marker{ line: 2, col: 17 }
+                ),
+            ]
+        )
+
     }
 }

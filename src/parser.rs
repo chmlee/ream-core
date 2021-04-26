@@ -116,7 +116,22 @@ impl<'source> Parser<'source> {
             }
         };
 
-        Ok(Some(Variable::new(key, typ, val)))
+        let ann = match self.scanner.peek_token()? {
+            Some(Token(TokenType::Annotation(_), _, _)) => {
+                let s = match self.scanner.take_token()? {
+                    Some(Token(TokenType::Annotation(s), _, _)) => s,
+                    _ => unreachable!(),
+                };
+                s
+            },
+            _ => {
+                String::from("")
+            }
+        };
+
+        // let ann = String::from("test");
+
+        Ok(Some(Variable::new(key, typ, val, ann)))
     }
 
     pub fn parse_symbol_colon(&mut self) -> Result<(),ScanError> {

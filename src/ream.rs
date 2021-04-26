@@ -70,14 +70,16 @@ pub struct Variable {
     pub key: String,
     pub typ: ValueType,
     pub value: String,
+    pub annotation: String,
 }
 
 impl Variable {
-    pub fn new(key: String, typ: ValueType, value: String) -> Self {
+    pub fn new(key: String, typ: ValueType, value: String, annotation: String) -> Self {
         Variable {
             key,
             typ,
             value,
+            annotation,
         }
     }
 
