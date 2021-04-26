@@ -30,7 +30,6 @@ impl Marker {
 pub enum TokenType {
 
     Header(usize),
-    End(usize),
 
     Class(String),
     Key(String),
@@ -38,9 +37,12 @@ pub enum TokenType {
     Type(String),
     Value(String),
 
+    Block(usize),
+    Annotation(String),
+
     Colon,
     Dash,
-    Star,
+    //Star,
 }
 
 pub enum ScanErrorKind {
@@ -126,7 +128,8 @@ impl<'source> Scanner<'source> {
             TokenType::Header(n)     => col - n + 1,
             TokenType::Class(s)
             | TokenType::Key(s)
-            | TokenType::Value(s)   => col - s.len() + 1,
+            | TokenType::Value(s)
+            | TokenType::Annotation(s)   => col - s.len() + 1,
             TokenType::Type(s)       => col - s.len() - 1,
             _ => col,
         };
@@ -214,12 +217,63 @@ impl<'source> Scanner<'source> {
         match token {
             b'#' => self.scan_line_header()?,
             b'-' => self.scan_line_variable()?,
+            b'>' => self.scan_line_annotation()?,
             _ => panic!("Invalid token!"),
         }
 
         self.end_of_line()?;
 
         Ok(())
+    }
+
+    pub fn scan_token_block(&mut self) -> ScanResult {
+        let mut count = 1;
+        loop {
+            match self.source {
+                [b'>', ref rest @ ..] => {
+                    count += 1;
+                    self.update_source(rest);
+                },
+                [b' ' , ..] => break,
+                [b'\n', ..] => break,
+                [other, ..]=> return Err(ScanError{ kind: ScanErrorKind::InvalidToken{ expect: vec![TokenType::Header(1)], got: other.to_owned() } }),
+                _ => unreachable!(),
+            }
+        }
+        self.push_token(TokenType::Block(count));
+
+        Ok(())
+    }
+
+    pub fn scan_token_annotation(&mut self) -> ScanResult {
+        let mut ann = String::new();
+        loop {
+            match self.source {
+                [b'\n', ref _rest @ ..] => {
+                    break;
+                },
+                [b, ref rest @ ..] => {
+                    ann.push(*b as char);
+                    self.update_source(rest);
+                },
+                _ => break, // TODO: ?
+
+            }
+        }
+
+        self.push_token(TokenType::Annotation(ann));
+
+        Ok(())
+    }
+
+    pub fn scan_line_annotation(&mut self) -> ScanResult {
+
+        self.scan_token_block()?;
+        self.skip_whitespaces(1)?;
+        self.scan_token_annotation()?;
+
+        Ok(())
+
     }
 
     pub fn scan_line_header(&mut self) -> ScanResult {
@@ -610,6 +664,30 @@ mod tests {
                     TokenType::Value("value".to_string()),
                         Marker{ line: 3, col: 8 },
                         Marker{ line: 3, col: 12 },
+                ),
+            ]
+        )
+    }
+
+    #[test]
+    fn annotation_line() {
+        //          0        1
+        //          1234567890123
+        let text = "> hello world";
+        let mut scanner = Scanner::new(&text);
+        let _ = scanner.scan_line();
+        assert_eq!(
+            scanner.buffer,
+            vec![
+                Token(
+                    TokenType::Block(1),
+                        Marker{ line: 1, col: 1 },
+                        Marker{ line: 1, col: 1 }
+                ),
+                Token(
+                    TokenType::Annotation("hello world".to_string()),
+                        Marker{ line: 1, col: 3 },
+                        Marker{ line: 1, col: 13 }
                 ),
             ]
         )
