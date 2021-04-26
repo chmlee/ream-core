@@ -3,7 +3,7 @@
 - capital (str): Brussels
 - population: 11433256
 - euro_zone: TRUE
-  > hello world
+> annotation
 
 ## Language
 - name: Dutch

@@ -117,19 +117,17 @@ impl<'source> Parser<'source> {
         };
 
         let ann = match self.scanner.peek_token()? {
-            Some(Token(TokenType::Annotation(_), _, _)) => {
-                let s = match self.scanner.take_token()? {
+            Some(Token(TokenType::Block(_), _, _)) => {
+                self.scanner.take_token()?; // consume Block
+                match self.scanner.take_token()? {
                     Some(Token(TokenType::Annotation(s), _, _)) => s,
                     _ => unreachable!(),
-                };
-                s
+                }
             },
             _ => {
                 String::from("")
             }
         };
-
-        // let ann = String::from("test");
 
         Ok(Some(Variable::new(key, typ, val, ann)))
     }
@@ -141,5 +139,39 @@ impl<'source> Parser<'source> {
         }
     }
 
+
+}
+
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+
+    #[test]
+    fn header_line() {
+        let text = "# Title";
+        let mut parser = Parser::new(&text);
+        let entry_test = parser.parse_entry().unwrap().unwrap();
+        let entry_ans = Entry::new("Title".to_string(), 1);
+        println!("{:?}", entry_test);
+        assert_eq!(entry_test, entry_ans);
+    }
+
+    #[test]
+    fn varible_line_string() {
+        let text = "# Title\n- key: value\n> annotation";
+        let mut parser = Parser::new(&text);
+        let entry_test = parser.parse_entry().unwrap().unwrap();
+        let mut entry_ans = Entry::new("Title".to_string(), 1);
+        let var = Variable::new(
+            String::from("key"),
+            ValueType::Str,
+            String::from("value"),
+            String::from("annotation"),
+        );
+        entry_ans.push_variable(var);
+        assert_eq!(entry_test, entry_ans);
+    }
 
 }

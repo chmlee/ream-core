@@ -2,7 +2,7 @@ use serde::{Serialize, Deserialize};
 use crate::scanner::ScanError;
 // use regex::Regex;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Entry {
     pub class: String,
     pub level: usize,
@@ -65,7 +65,7 @@ impl Entry {
 
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Variable {
     pub key: String,
     pub typ: ValueType,
