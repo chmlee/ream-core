@@ -6,7 +6,6 @@ use std::{env, fs};
 use std::fs::File;
 use std::io::Write;
 use clap::{Arg, App};
-use csv::*;
 use crate::scanner::*;
 use crate::parser::*;
 
