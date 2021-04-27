@@ -1,7 +1,6 @@
 mod scanner;
 mod parser;
 mod ream;
-mod csv;
 
 use std::{env, fs};
 use std::fs::File;
