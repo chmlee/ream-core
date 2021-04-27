@@ -192,7 +192,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "ream-core"
+name = "ream"
 version = "0.1.0"
 dependencies = [
  "clap",
