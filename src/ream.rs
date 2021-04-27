@@ -58,7 +58,7 @@ impl Entry {
 
     pub fn to_csv(&self) -> String {
         let rows = self.flatten_entry();
-        let csv_raw = rows.iter().fold(String::new(), |acc, row| acc + &row.join(";") + "\n");
+        let csv_raw = rows.iter().fold(String::new(), |acc, row| acc + &row.join(",") + "\n");
         csv_raw
     }
 
