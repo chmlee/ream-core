@@ -3,3 +3,6 @@
 # bench files
 /bench/input
 /bench/output
+
+# wasm target
+/pkg
