@@ -20,3 +20,7 @@ pub fn ream2csv(source: &str) -> String {
     let result = parser.parse_entry().unwrap().ok_or_else(|| panic!("something went wrong"));
     result.unwrap().to_csv()
 }
+
+pub fn add_one(x: f64) -> f64 {
+    x + 1.0
+}

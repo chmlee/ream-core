@@ -4,11 +4,11 @@ use crate::scanner::ScanError;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Entry {
-    pub class: String,
-    pub level: usize,
+    class: String,
+    level: usize,
 
-    pub variables: Vec<Variable>,
-    pub subentries: Vec<Entry>,
+    variables: Vec<Variable>,
+    subentries: Vec<Entry>,
 }
 
 impl Entry {
@@ -24,6 +24,10 @@ impl Entry {
 
     pub fn push_variable(&mut self, variable: Variable) {
         self.variables.push(variable);
+    }
+
+    pub fn push_subentry(&mut self, subentry: Entry) {
+        self.subentries.push(subentry);
     }
 
     pub fn get_variable_values(&self) -> Vec<String> {
@@ -67,10 +71,10 @@ impl Entry {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Variable {
-    pub key: String,
-    pub typ: ValueType,
-    pub value: String,
-    pub annotation: String,
+    key: String,
+    typ: ValueType,
+    value: String,
+    annotation: String,
 }
 
 impl Variable {
@@ -94,6 +98,7 @@ pub enum ValueType {
     Num,
     Bool,
     Unknown,
+    List(Box<ValueType>),
 }
 
 fn is_bool(value: &str) -> bool {
