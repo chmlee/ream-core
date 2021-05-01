@@ -1,6 +1,8 @@
 use std::collections::VecDeque;
 use std::{fmt, str};
 
+use crate::error::{ReamError, ScanErrorType};
+
 #[derive(PartialEq, Eq, Clone)]
 pub struct Token(pub TokenType, pub Marker, pub Marker);
 
@@ -45,39 +47,24 @@ pub enum TokenType {
     //Star,
 }
 
-pub enum ScanErrorKind {
-    InvalidToken{ expect: Vec<TokenType>, got: u8 },
-}
 
-impl fmt::Debug for ScanErrorKind {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match &*self {
-            ScanErrorKind::InvalidToken{ expect, got } => {
-                write!(f, "expecting {:?}, got {:?}", expect, got)
-            }
-        }
-    }
-}
-
-
-
-
-
-#[derive(Debug)]
-pub struct ScanError {
-    // mark: Marker,
-    kind: ScanErrorKind,
-}
-
-type ScanResult = Result<(), ScanError>;
+// impl fmt::Debug for ScanError {
+//     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+//         match &*self {
+//             InvalidToken{ expect, got } => {
+//                 write!(f, "expecting {:?}, got {:?}", expect, got)
+//             }
+//         }
+//     }
+// }
 
 #[derive(Debug, Clone)]
 pub struct Scanner<'source>  {
     pub source: &'source [u8],
     pub buffer: VecDeque<Token>,
 
-    pub eof: bool,
 
+    pub eof: bool,
     pub loc: Marker,
 }
 
@@ -85,7 +72,7 @@ impl<'source> Scanner<'source> {
     pub fn new(source: &'source str) -> Self {
         let source = source.as_bytes();
         Scanner {
-            source: source,
+            source,
             buffer: VecDeque::new(),
 
             eof: false,
@@ -138,7 +125,7 @@ impl<'source> Scanner<'source> {
         self.buffer.push_back(Token(tt, start, end));
     }
 
-    pub fn peek_token(&mut self) -> Result<Option<&Token>, ScanError> {
+    pub fn peek_token(&mut self) -> Result<Option<&Token>, ReamError> {
         if self.buffer.is_empty() {
             if self.eof {
                 return Ok(None);   // End of File
@@ -151,7 +138,7 @@ impl<'source> Scanner<'source> {
         Ok(token_option)
     }
 
-    pub fn take_token(&mut self) -> Result<Option<Token>, ScanError> {
+    pub fn take_token(&mut self) -> Result<Option<Token>, ReamError> {
         if self.buffer.is_empty() {
             if self.eof {
                 return Ok(None);   // End of File
@@ -164,7 +151,7 @@ impl<'source> Scanner<'source> {
         Ok(token_option)
     }
 
-    pub fn skip_whitespaces(&mut self, min: usize) -> ScanResult {
+    pub fn skip_whitespaces(&mut self, min: usize) -> Result<(), ReamError> {
         let mut count = 0;
         loop {
             match self.source {
@@ -177,13 +164,13 @@ impl<'source> Scanner<'source> {
         }
 
         if count < min {
-            panic!("too few spaces!");
+            return Err(ReamError::ScanError(ScanErrorType::WrongHeaderLevel))
         }
 
         Ok(())
     }
 
-    pub fn scan_line(&mut self) -> ScanResult {
+    pub fn scan_line(&mut self) -> Result<(), ReamError> {
 
         // ignore all empty lines
         loop {
@@ -218,7 +205,7 @@ impl<'source> Scanner<'source> {
             b'#' => self.scan_line_header()?,
             b'-' => self.scan_line_variable()?,
             b'>' => self.scan_line_annotation()?,
-            _ => panic!("Invalid token!"),
+            _ => return Err(ReamError::ScanError(ScanErrorType::InvalidToken)),
         }
 
         self.end_of_line()?;
@@ -226,7 +213,7 @@ impl<'source> Scanner<'source> {
         Ok(())
     }
 
-    pub fn scan_token_block(&mut self) -> ScanResult {
+    pub fn scan_token_block(&mut self) -> Result<(), ReamError> {
         let mut count = 1;
         loop {
             match self.source {
@@ -236,7 +223,7 @@ impl<'source> Scanner<'source> {
                 },
                 [b' ' , ..] => break,
                 [b'\n', ..] => break,
-                [other, ..]=> return Err(ScanError{ kind: ScanErrorKind::InvalidToken{ expect: vec![TokenType::Header(1)], got: other.to_owned() } }),
+                [other, ..]=> return Err(ReamError::ScanError(ScanErrorType::InvalidToken)),
                 _ => unreachable!(),
             }
         }
@@ -245,7 +232,7 @@ impl<'source> Scanner<'source> {
         Ok(())
     }
 
-    pub fn scan_token_annotation(&mut self) -> ScanResult {
+    pub fn scan_token_annotation(&mut self) -> Result<(), ReamError> {
         let mut ann = String::new();
         loop {
             match self.source {
@@ -266,7 +253,7 @@ impl<'source> Scanner<'source> {
         Ok(())
     }
 
-    pub fn scan_line_annotation(&mut self) -> ScanResult {
+    pub fn scan_line_annotation(&mut self) -> Result<(), ReamError> {
 
         self.scan_token_block()?;
         self.skip_whitespaces(1)?;
@@ -276,7 +263,7 @@ impl<'source> Scanner<'source> {
 
     }
 
-    pub fn scan_line_header(&mut self) -> ScanResult {
+    pub fn scan_line_header(&mut self) -> Result<(), ReamError> {
         self.scan_token_header()?;
         self.skip_whitespaces(1)?;
         self.scan_token_class()?;
@@ -285,7 +272,7 @@ impl<'source> Scanner<'source> {
     }
 
 
-    pub fn scan_line_variable(&mut self) -> ScanResult {
+    pub fn scan_line_variable(&mut self) -> Result<(), ReamError> {
         // - key (type): value
         self.push_token(TokenType::Dash);
         self.skip_whitespaces(1)?;
@@ -300,7 +287,7 @@ impl<'source> Scanner<'source> {
         Ok(())
     }
 
-    pub fn scan_token_value_type(&mut self) -> ScanResult {
+    pub fn scan_token_value_type(&mut self) -> Result<(), ReamError> {
         match self.source {
             [b'(', rest @ ..] => {
                 self.update_source(rest);
@@ -325,7 +312,7 @@ impl<'source> Scanner<'source> {
         Ok(())
     }
 
-    pub fn scan_value(&mut self) -> ScanResult {
+    pub fn scan_value(&mut self) -> Result<(), ReamError> {
         let mut value = String::new();
         loop {
             match self.source {
@@ -341,7 +328,7 @@ impl<'source> Scanner<'source> {
         }
 
         if value.is_empty() {
-            panic!("value is empty");
+            return Err(ReamError::ScanError(ScanErrorType::MissingValue));
         }
 
         self.push_token(TokenType::Value(value));
@@ -349,12 +336,12 @@ impl<'source> Scanner<'source> {
         Ok(())
     }
 
-    pub fn scan_token_colon(&mut self) -> ScanResult {
+    pub fn scan_token_colon(&mut self) -> Result<(), ReamError> {
         match self.source {
             [b':', ref rest @ ..] => {
                 self.update_source(rest);
             },
-            _ => panic!("expecting colon"),
+            _ => return Err(ReamError::ScanError(ScanErrorType::MissingColon)),
         }
 
         self.push_token(TokenType::Colon);
@@ -362,7 +349,7 @@ impl<'source> Scanner<'source> {
         Ok(())
     }
 
-    pub fn scan_token_header(&mut self) -> ScanResult {
+    pub fn scan_token_header(&mut self) -> Result<(), ReamError> {
         let mut count = 1;
         loop {
             match self.source {
@@ -372,7 +359,8 @@ impl<'source> Scanner<'source> {
                 },
                 [b' ' , ..] => break,
                 [b'\n', ..] => break,
-                [other, ..]=> return Err(ScanError{ kind: ScanErrorKind::InvalidToken{ expect: vec![TokenType::Header(1)], got: other.to_owned() } }),
+                // TODO: other?
+                [other, ..]=> return Err(ReamError::ScanError(ScanErrorType::InvalidToken)),
                 _ => unreachable!(),
             }
         }
@@ -381,7 +369,7 @@ impl<'source> Scanner<'source> {
         Ok(())
     }
 
-    pub fn scan_token_key(&mut self) -> ScanResult {
+    pub fn scan_token_key(&mut self) -> Result<(), ReamError> {
         let mut name = String::new();
         loop {
             match self.source {
@@ -395,7 +383,7 @@ impl<'source> Scanner<'source> {
                     name.push(*b as char);
                     self.update_source(rest);
                 },
-                _ => panic!("expecting key"),
+                _ => return Err(ReamError::ScanError(ScanErrorType::MissingKey)),
             }
         }
         self.push_token(TokenType::Key(name));
@@ -403,7 +391,7 @@ impl<'source> Scanner<'source> {
         Ok(())
     }
 
-    pub fn scan_token_class(&mut self) -> ScanResult {
+    pub fn scan_token_class(&mut self) -> Result<(), ReamError> {
         let mut name = String::new();
         loop {
             match self.source {
@@ -419,7 +407,7 @@ impl<'source> Scanner<'source> {
         }
 
         if name.is_empty() {
-            panic!("class is empty");
+            return Err(ReamError::ScanError(ScanErrorType::MissingClass));
         }
 
         self.push_token(TokenType::Class(name));
@@ -427,7 +415,7 @@ impl<'source> Scanner<'source> {
         Ok(())
     }
 
-    pub fn end_of_line(&mut self) -> ScanResult {
+    pub fn end_of_line(&mut self) -> Result<(), ReamError> {
         self.skip_whitespaces(0)?;
         match self.source {
 
@@ -440,10 +428,10 @@ impl<'source> Scanner<'source> {
                 self.eof = true;
             },
             _ => {
-                panic!("should end line!");
+                return Err(ReamError::ScanError(ScanErrorType::MissingEOL));
             },
         }
-        println!("end of line!");
+        // println!("end of line!");
 
         Ok(())
     }

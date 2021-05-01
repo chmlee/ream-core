@@ -1,4 +1,5 @@
 use crate::scanner::*;
+use std::error;
 use crate::ream::*;
 
 #[derive(Debug)]
@@ -34,7 +35,7 @@ impl<'source> Parser<'source> {
         Ok(identifier)
     }
 
-    pub fn parse_entry(&mut self) -> ParseEntryResult {
+    pub fn parse_entry(&mut self) -> Result<Option<Entry>, Box<dyn error::Error>> {
         let level = self.parse_token_header()?;
         println!("parsing entry level {}", &level);
         self.level = level;
