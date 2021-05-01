@@ -145,21 +145,21 @@ pub fn validate_known_value_type(val: &String, typ: &ValueType) -> Result<(), Re
     Ok(())
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub enum ReamError {
     ScanError(ScanErrorType),
     ParseError(ParseErrorType),
     TypeError(TypeErrorType),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub enum TypeErrorType {
     UnknownType,
     InvalidNumber,
     InvalidBoolean,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub enum ParseErrorType {
     MissingHeaderLevel,
     MissingIdentifier,
@@ -171,7 +171,7 @@ pub enum ParseErrorType {
     WrongHeaderLevel,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub enum ScanErrorType {
     InvalidToken,
     // ToFewSpaces,

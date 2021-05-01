@@ -28,7 +28,7 @@ fn main() {
                 .short('f')
                 .takes_value(true)
                 .possible_values(&[
-                    "JSON",
+                    "AST",
                     "CSV",
                 ])
         )
@@ -64,13 +64,16 @@ fn main() {
 
     let output_text = match matches.value_of("format") {
         Some(f) => {
-            let result = parser.parse_entry().unwrap().ok_or_else(|| panic!("something went wrong"));
+            let result = parser.parse_entry();
             match f {
-                "JSON" => {
+                "AST" => {
                     serde_json::to_string(&result).unwrap()
                 },
                 "CSV" => {
-                    result.unwrap().to_csv()
+                    match result {
+                        Ok(entry) => entry.unwrap().to_csv(),
+                        err => serde_json::to_string(&err).unwrap(),
+                    }
                 },
                 _ => panic!("Output format not supported"),
             }
