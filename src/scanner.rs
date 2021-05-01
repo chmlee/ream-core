@@ -1,7 +1,7 @@
 use std::collections::VecDeque;
 use std::{fmt, str};
 
-use crate::error::{ReamError, ScanErrorType};
+use crate::ream::*;
 
 #[derive(PartialEq, Eq, Clone)]
 pub struct Token(pub TokenType, pub Marker, pub Marker);
@@ -92,9 +92,9 @@ impl<'source> Scanner<'source> {
         self.loc.line += 1;
     }
 
-    pub fn get_source(&self) {
-        println!("{:?}", str::from_utf8(self.source).unwrap());
-    }
+    // pub fn get_source(&self) {
+    //     println!("{:?}", str::from_utf8(self.source).unwrap());
+    // }
 
     pub fn get_loc(&self) -> Marker {
         self.loc
@@ -223,7 +223,7 @@ impl<'source> Scanner<'source> {
                 },
                 [b' ' , ..] => break,
                 [b'\n', ..] => break,
-                [other, ..]=> return Err(ReamError::ScanError(ScanErrorType::InvalidToken)),
+                [_, ..]=> return Err(ReamError::ScanError(ScanErrorType::InvalidToken)),
                 _ => unreachable!(),
             }
         }
@@ -360,7 +360,7 @@ impl<'source> Scanner<'source> {
                 [b' ' , ..] => break,
                 [b'\n', ..] => break,
                 // TODO: other?
-                [other, ..]=> return Err(ReamError::ScanError(ScanErrorType::InvalidToken)),
+                [_, ..]=> return Err(ReamError::ScanError(ScanErrorType::InvalidToken)),
                 _ => unreachable!(),
             }
         }

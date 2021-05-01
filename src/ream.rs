@@ -1,6 +1,4 @@
 use serde::{Serialize, Deserialize};
-use crate::scanner::ScanError;
-// use regex::Regex;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Entry {
@@ -119,7 +117,7 @@ fn is_num(value: &str) -> bool {
 }
 
 
-pub fn check_unknown_value_type(val: &String) -> Result<ValueType, ScanError> {
+pub fn check_unknown_value_type(val: &String) -> Result<ValueType, ReamError> {
     if is_bool(val) {
         Ok(ValueType::Bool)
     } else if is_num(val) {
@@ -129,16 +127,16 @@ pub fn check_unknown_value_type(val: &String) -> Result<ValueType, ScanError> {
     }
 }
 
-pub fn validate_known_value_type(val: &String, typ: &ValueType) -> Result<(), ScanError> {
+pub fn validate_known_value_type(val: &String, typ: &ValueType) -> Result<(), ReamError> {
     match typ {
         ValueType::Num => {
             if !is_num(val) {
-                panic!("not number");
+                return Err(ReamError::TypeError(TypeErrorType::InvalidNumber))
             }
         },
         ValueType::Bool => {
             if !is_bool(val) {
-                panic!("not boolean");
+                return Err(ReamError::TypeError(TypeErrorType::InvalidBoolean))
             }
         },
         _ => {},
@@ -147,12 +145,40 @@ pub fn validate_known_value_type(val: &String, typ: &ValueType) -> Result<(), Sc
     Ok(())
 }
 
-macro_rules! result_type {
-    ($name:ident, $result:ty) => {
-        pub type $name = Result<Option<$result>, ScanError>;
-    };
+#[derive(Debug)]
+pub enum ReamError {
+    ScanError(ScanErrorType),
+    ParseError(ParseErrorType),
+    TypeError(TypeErrorType),
 }
 
-result_type!(ParseEntryResult, Entry);
-result_type!(ParseVariableResult, Variable);
-result_type!(ParseHeaderResult, ());
+#[derive(Debug)]
+pub enum TypeErrorType {
+    UnknownType,
+    InvalidNumber,
+    InvalidBoolean,
+}
+
+#[derive(Debug)]
+pub enum ParseErrorType {
+    MissingHeaderLevel,
+    MissingIdentifier,
+    MissingVariable,
+    MissingSubentry,
+    MissingValue,
+    MissingToken,
+    MissingColon,
+    WrongHeaderLevel,
+}
+
+#[derive(Debug)]
+pub enum ScanErrorType {
+    InvalidToken,
+    // ToFewSpaces,
+    MissingValue,
+    MissingKey,
+    MissingClass,
+    MissingEOL,
+    MissingColon,
+    WrongHeaderLevel,
+}

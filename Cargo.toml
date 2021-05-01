@@ -24,5 +24,10 @@ opt-level = 2
 
 
 [lib]
-crate-name = "test"
+crate-name = "ream"
 crate-type = ["cdylib", "lib"]
+path = "src/lib.rs"
+
+[[bin]]
+name = "ream"
+path = "src/main.rs"
