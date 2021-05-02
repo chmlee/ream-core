@@ -223,8 +223,7 @@ impl<'source> Scanner<'source> {
                 },
                 [b' ' , ..] => break,
                 [b'\n', ..] => break,
-                [_, ..]=> return Err(ReamError::ScanError(ScanErrorType::InvalidToken)),
-                _ => unreachable!(),
+                _=> return Err(ReamError::ScanError(ScanErrorType::InvalidToken)),
             }
         }
         self.push_token(TokenType::Block(count));
@@ -365,8 +364,7 @@ impl<'source> Scanner<'source> {
                 [b' ' , ..] => break,
                 [b'\n', ..] => break,
                 // TODO: other?
-                [_, ..]=> return Err(ReamError::ScanError(ScanErrorType::InvalidToken)),
-                _ => unreachable!(),
+                _ => return Err(ReamError::ScanError(ScanErrorType::InvalidToken)),
             }
         }
         self.push_token(TokenType::Header(count));
