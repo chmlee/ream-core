@@ -305,7 +305,9 @@ impl<'source> Scanner<'source> {
                             typ.push(*b as char);
                             self.update_source(rest);
                         },
-                        _ => {},
+                        _ => {
+                            return Err(ReamError::ScanError(ScanErrorType::InvalidType))
+                        },
                     }
                 }
                 self.push_token(TokenType::Type(typ));
