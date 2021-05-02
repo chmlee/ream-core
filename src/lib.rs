@@ -12,8 +12,7 @@ use wasm_bindgen::prelude::*;
 pub fn ream2ast(source: &str) -> String {
     let mut parser = Parser::new(&source);
     let result = parser.parse_entry();
-    let output = serde_json::to_string(&result).unwrap();
-    // let output_raw = serde_json::to_string(&output).unwrap();
+    let output = result.expect("a").expect("b").to_ast_str_pretty().expect("c");
 
     output
 }
@@ -22,12 +21,7 @@ pub fn ream2ast(source: &str) -> String {
 pub fn ream2csv(source: &str) -> String {
     let mut parser = Parser::new(&source);
     let result = parser.parse_entry();
-    let output_raw = match result {
-        Ok(entry) => {
-            entry.unwrap().to_csv()
-        },
-        err => serde_json::to_string(&err).unwrap(),
-    };
+    let output = result.expect("a").expect("b").to_csv_str().expect("c");
 
-    output_raw
+    output
 }

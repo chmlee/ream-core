@@ -58,10 +58,25 @@ impl Entry {
         }
     }
 
-    pub fn to_csv(&self) -> String {
+    pub fn to_csv_list(&self) -> Result<Vec<Vec<String>>, ReamError> {
         let rows = self.flatten_entry();
-        let csv_raw = rows.iter().fold(String::new(), |acc, row| acc + &row.join(",") + "\n");
-        csv_raw
+        Ok(rows)
+    }
+
+    pub fn to_csv_str(&self) -> Result<String, ReamError> {
+        let rows = self.flatten_entry();
+        let raw = rows.iter().fold(String::new(), |acc, row| acc + &row.join(",") + "\n");
+        Ok(raw)
+    }
+
+    pub fn to_ast_str_pretty(&mut self) -> Result<String, ReamError> {
+        let raw = serde_json::to_string_pretty(&self).unwrap();
+        Ok(raw)
+    }
+
+    pub fn to_ast_str(&mut self) -> Result<String, ReamError> {
+        let raw = serde_json::to_string(&self).unwrap();
+        Ok(raw)
     }
 
 

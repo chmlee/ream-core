@@ -64,21 +64,18 @@ fn main() {
 
     let output_text = match matches.value_of("format") {
         Some(f) => {
-            let result = parser.parse_entry();
+            let result = parser.parse_entry().unwrap();
             match f {
                 "AST" => {
-                    serde_json::to_string(&result).unwrap()
+                    result.unwrap().to_ast_str().unwrap()
                 },
                 "CSV" => {
-                    match result {
-                        Ok(entry) => entry.unwrap().to_csv(),
-                        err => serde_json::to_string(&err).unwrap(),
-                    }
+                    result.unwrap().to_csv_str().unwrap()
                 },
                 _ => panic!("Output format not supported"),
             }
         },
-        None => panic!("Missing output format")
+        _ => panic!("Missing output format")
     };
 
     fs::write(output_path, &output_text).expect("unable to write");

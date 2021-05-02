@@ -14,5 +14,5 @@
 - size: 0.4
 
 ## Language
-- name (num): German
+- name (str): German
 - size (str): 0.01
