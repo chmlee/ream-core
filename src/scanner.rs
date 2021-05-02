@@ -298,6 +298,9 @@ impl<'source> Scanner<'source> {
                             self.update_source(rest);
                             break;
                         },
+                        [b'\n', ref _rest @ ..]=> {
+                            return Err(ReamError::ScanError(ScanErrorType::InvalidType))
+                        },
                         [b, ref rest @ ..] => {
                             typ.push(*b as char);
                             self.update_source(rest);

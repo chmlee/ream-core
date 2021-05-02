@@ -195,5 +195,6 @@ pub enum ScanErrorType {
     MissingClass,
     MissingEOL,
     MissingColon,
+    InvalidType,
     WrongHeaderLevel,
 }
