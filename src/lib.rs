@@ -2,7 +2,9 @@ pub mod scanner;
 pub mod parser;
 pub mod ream;
 
-use parser::*;
+pub use parser::*;
+pub use scanner::*;
+pub use ream::*;
 
 use wasm_bindgen::prelude::*;
 
