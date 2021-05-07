@@ -5,36 +5,56 @@
 
 
 REAM is a data language for building maintainable social science datasets.
-It has three main components:
+It encourages inline documentation for individual data points, and introduces [features](https://ream-lang.org/why-ream) to reduce repetition.
+
+The language has three main components:
 
 - a **data serialization language** or structured datasets (working in progress)
 - a **data template language** to generate datasets (planned)
 - a collection of **filters** to manipulate data (planned)
 
-The language compiles to both human-readable documentation (HTML, PDF, etc.) and analysis-ready datasets (CSV, JSON, etc.)
+REAM compiles to both human-readable documentation (HTML, PDF, etc.) and analysis-ready datasets (CSV, JSON, etc.)
 Two formats, one source.
 
-```md
-# Country
-- name: Belgium
-- capital: Brussels
-- population: 11433256
-  > data from 2019; retrieved from World Bank
-- euro_zone: TRUE
-  > joined in 1999
+<pre style="background-color:#2B303B;line-height:10px;width:70vw">
+<span style="color:#abb2bf;"># </span><span style="color:#eb6772;">Country</span>
 
-## Language
-- name: Dutch
-- size: 0.59
+<span style="color:#abb2bf;padding:2;">- name: </span><span style="color:#9acc76;">Belgium</span>
 
-## Language
-- name: French
-- size: 0.4
+<span style="color:#abb2bf;">- capital: </span><span style="color:#9acc76;">Brussels</span>
 
-## Language
-- name: German
-- size: 0.01
-```
+<span style="color:#abb2bf;">- population: </span><span style="color:#db9d63;">11433256</span>
+
+<span style="font-style:italic;color:#5f697a;">  &gt; data from 2019; retrieved from World Bank</span>
+
+<span style="color:#abb2bf;">- euro_zone: </span><span style="color:#5ebfcc;">TRUE</span>
+
+<span style="font-style:italic;color:#5f697a;">  &gt; joined in 1999</span>
+
+<div style="padding:5px 0px">
+<span style="color:#abb2bf;">## </span><span style="color:#eb6772;">Language</span>
+
+<span style="color:#abb2bf;">- name: </span><span style="color:#9acc76;">Dutch</span>
+
+<span style="color:#abb2bf;">- size: </span><span style="color:#db9d63;">0.59</span>
+</div>
+
+<div style="padding:5px 0px">
+<span style="color:#abb2bf;">## </span><span style="color:#eb6772;">Language</span>
+
+<span style="color:#abb2bf;">- name: </span><span style="color:#9acc76;">French</span>
+
+<span style="color:#abb2bf;">- size: </span><span style="color:#db9d63;">0.4</span>
+</div>
+
+<div style="padding:5px 0px">
+<span style="color:#abb2bf;">## </span><span style="color:#eb6772;">Language</span>
+
+<span style="color:#abb2bf;">- name: </span><span style="color:#9acc76;">German</span>
+
+<span style="color:#abb2bf;">- size: </span><span style="color:#db9d63;">0.01</span>
+</div>
+</pre>
 
 The official [REAM documentation](https://ream-lang.org) provides more information on the language.
 The rest of the README focuses on the compiler, ream-core.
