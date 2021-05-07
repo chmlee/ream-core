@@ -45,12 +45,12 @@ The rest of the README focuses on the compiler, ream-core.
 
 ### Web
 
-Two web-based editors with ream-core embedded are available without local installation:
+Two web-based editors with ream-core embe Tooldded are available without local installation:
 
 - [ream-yew](https://chmlee.github.io/ream-editor)
 - [ream-wasm](https://chmlee.github.io/ream-wasm)
 
-### CLI
+### Commandline Tool
 
 For a local copy of the commandline tool, you will need [Cargo](https://doc.rust-lang.org/stable/cargo/) and install in one of the two ways:
 
@@ -64,8 +64,7 @@ cargo install ream
 
 ```shell
 git clone https://github.com/chmlee/ream-core
-cd ream-core
-cargo build
+cd ream-core && cargo build
 ```
 
 Now you have commandline tool `ream` available locally.
@@ -77,21 +76,42 @@ ream -i <INPUT> -o <OUTPUT> -f <FORMAT> [-p]
 ```
 
 where `<INPUT>` is the path to the REAM file and `<OUTPUT>` the path of the output file.
-For `<FORMAT>` there are two output formats to choose from: `CSV` and `AST`.
+For `<FORMAT>` there are two options: `CSV` and `AST`(abstract syntax tree).
 If the `-p` flag is present, the output will also be printed out as stdout.
 
 Example:
 
 ```shell
-ream -i data.ream -o data.csv -f CSV -p
+ream -i my_data.ream -o my_data.csv -f CSV -p
 ```
 
 ### Crate
 
-To include ream-core into your project, add the following line to your `Cargo.toml` file:
+To include ream-core into your Rust project, add the following line to your `Cargo.toml` file:
 ```toml
 [dependencies]
 ream = "0.3.1"
 ```
 
 See [docs.rs](https://docs.rs/ream/0.3.1/ream/) for more information.
+
+### WebAssembly
+
+[`wasm-pack`](https://rustwasm.github.io/wasm-pack/installer/) is requried to compile ream-core to WebAssembly.
+
+```shell
+git clone https://github.com/chmlee/ream-core
+cd ream-core && wasm-pack build --target web
+```
+
+Two functions are avaiable in the WASM modules: `ream2csv` and `ream2ast`:
+
+```js
+import init, {ream2csv, ream2ast} from "./ream.js";
+
+init()
+  .then(() => {
+    let csv = ream2csv(intput);
+    let ast = ream2ast(input);
+  })
+```
