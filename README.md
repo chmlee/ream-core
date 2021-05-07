@@ -5,7 +5,7 @@
 
 
 REAM is a data language for building maintainable social science datasets.
-It encourages inline documentation for individual data points, and introduces [features](https://ream-lang.org/why-ream) to reduce repetition.
+It encourages inline documentation for individual data points, and introduces [features](https://ream-lang.org/overview/why-ream) to reduce repetition.
 
 The language has three main components:
 
