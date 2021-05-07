@@ -9,7 +9,7 @@ It encourages inline documentation for individual data points, and introduces [f
 
 The language has three main components:
 
-- a **data serialization language** or structured datasets (working in progress)
+- a **data serialization language** for structured datasets (working in progress)
 - a **data template language** to generate datasets (planned)
 - a collection of **filters** to manipulate data (planned)
 
@@ -38,6 +38,14 @@ Two formats, one source.
 - size: 0.01
 ```
 
+compiles to
+
+```csv
+Belgium,Brussels,11433256,TRUE,Dutch,0.59
+Belgium,Brussels,11433256,TRUE,French,0.4
+Belgium,Brussels,11433256,TRUE,German,0.01
+```
+
 The official [REAM documentation](https://ream-lang.org) provides more information on the language.
 The rest of the README focuses on the compiler, ream-core.
 
@@ -45,7 +53,7 @@ The rest of the README focuses on the compiler, ream-core.
 
 ### Web
 
-Two web-based editors with ream-core embe Tooldded are available without local installation:
+Two web-based editors with ream-core embedded are available without local installation:
 
 - [ream-yew](https://chmlee.github.io/ream-editor)
 - [ream-wasm](https://chmlee.github.io/ream-wasm)
@@ -104,7 +112,7 @@ git clone https://github.com/chmlee/ream-core
 cd ream-core && wasm-pack build --target web
 ```
 
-Two functions are avaiable in the WASM modules: `ream2csv` and `ream2ast`:
+Two functions are avaiable in the WASM module: `ream2csv` and `ream2ast`:
 
 ```js
 import init, {ream2csv, ream2ast} from "./ream.js";
