@@ -85,23 +85,43 @@ impl Entry {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Variable {
     key: String,
-    typ: ValueType,
-    value: String,
+    value: ReamValue,
     annotation: String,
 }
 
 impl Variable {
-    pub fn new(key: String, typ: ValueType, value: String, annotation: String) -> Self {
+    pub fn new(key: String, value: ReamValue, annotation: String) -> Self {
         Variable {
             key,
-            typ,
             value,
             annotation,
         }
     }
 
     pub fn get_value(&self) -> String {
-        self.value.clone()
+        self.value.get_value()
+    }
+}
+
+#[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
+pub enum ReamValue {
+    Str(String),
+    Num(String),
+    Bool(String),
+    Unknown(String),
+    List(Vec<ReamValue>),
+}
+
+impl ReamValue {
+    pub fn get_value(&self) -> String {
+        match self {
+            Self::Str(s) => s.to_string(),
+            Self::Num(s) => s.to_string(),
+            Self::Bool(s) => s.to_string(),
+            _ => unreachable!(),
+            // Unknown(String),
+            // List(Vec<ReamValue>),
+        }
     }
 }
 
@@ -132,32 +152,35 @@ fn is_num(value: &str) -> bool {
 }
 
 
-pub fn check_unknown_value_type(val: &String) -> Result<ValueType, ReamError> {
-    if is_bool(val) {
-        Ok(ValueType::Bool)
-    } else if is_num(val) {
-        Ok(ValueType::Num)
+pub fn check_unknown_value_type(val: String) -> Result<ReamValue, ReamError> {
+    if is_bool(&val) {
+        Ok(ReamValue::Bool(val))
+    } else if is_num(&val) {
+        Ok(ReamValue::Num(val))
     } else {
-        Ok(ValueType::Str)
+        Ok(ReamValue::Str(val))
     }
 }
 
-pub fn validate_known_value_type(val: &String, typ: &ValueType) -> Result<(), ReamError> {
+pub fn validate_known_value_type(val: String, typ: ValueType) -> Result<ReamValue, ReamError> {
     match typ {
         ValueType::Num => {
-            if !is_num(val) {
+            if !is_num(&val) {
                 return Err(ReamError::TypeError(TypeErrorType::InvalidNumber))
             }
+            return Ok(ReamValue::Num(val))
         },
         ValueType::Bool => {
-            if !is_bool(val) {
+            if !is_bool(&val) {
                 return Err(ReamError::TypeError(TypeErrorType::InvalidBoolean))
             }
+            return Ok(ReamValue::Bool(val))
         },
-        _ => {},
+        ValueType::Str => {
+            return Ok(ReamValue::Str(val))
+        },
+        _ => unreachable!(),
     }
-
-    Ok(())
 }
 
 #[derive(Debug, Serialize, Deserialize)]

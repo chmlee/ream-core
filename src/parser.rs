@@ -84,7 +84,7 @@ impl<'source> Parser<'source> {
         let key = self.parse_token_identifier()?;
 
 
-        let mut typ = match self.scanner.take_token()? {
+        let typ = match self.scanner.take_token()? {
             Some(Token(TokenType::Type(t), _, _)) => {
                 self.parse_symbol_colon()?;
                 let t = match t.as_str() {
@@ -104,18 +104,18 @@ impl<'source> Parser<'source> {
         };
 
         let val = match self.scanner.take_token()? {
-            Some(Token(TokenType::Value(v), _, _)) => v,
-            _ => return Err(ReamError::ParseError(ParseErrorType::MissingValue)),
-        };
+            Some(Token(TokenType::Value(v), _, _)) => {
+                match typ {
+                    ValueType::Unknown => {
+                        check_unknown_value_type(v)?
+                    },
+                    t => {
+                        validate_known_value_type(v, t)?
+                    },
+                }
 
-        typ = match typ {
-            ValueType::Unknown => {
-                check_unknown_value_type(&val)?
             },
-            t => {
-                validate_known_value_type(&val, &t)?;
-                t
-            }
+            _ => return Err(ReamError::ParseError(ParseErrorType::MissingValue)),
         };
 
         let ann = match self.scanner.peek_token()? {
@@ -131,7 +131,7 @@ impl<'source> Parser<'source> {
             }
         };
 
-        Ok(Some(Variable::new(key, typ, val, ann)))
+        Ok(Some(Variable::new(key, val, ann)))
     }
 
     pub fn parse_symbol_colon(&mut self) -> Result<(), ReamError> {
@@ -168,8 +168,7 @@ mod tests {
         let mut entry_ans = Entry::new("Title".to_string(), 1);
         let var = Variable::new(
             String::from("key"),
-            ValueType::Str,
-            String::from("value"),
+            ReamValue::Str("value".to_string()),
             String::from("annotation"),
         );
         entry_ans.push_variable(var);
