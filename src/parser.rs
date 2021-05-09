@@ -84,36 +84,11 @@ impl<'source> Parser<'source> {
         let key = self.parse_token_identifier()?;
 
 
-        let typ = match self.scanner.take_token()? {
-            Some(Token(TokenType::Type(t), _, _)) => {
-                self.parse_symbol_colon()?;
-                let t = match t.as_str() {
-                    "str" => ValueType::Str,
-                    "num" => ValueType::Num,
-                    "bool" => ValueType::Bool,
-                    _ => return Err(ReamError::TypeError(TypeErrorType::UnknownType)),
-                };
-                t
-            },
-            Some(Token(TokenType::Colon, _, _)) => {
-                ValueType::Unknown
-            },
-            _ => {
-                return Err(ReamError::ParseError(ParseErrorType::MissingToken));
-            }
-        };
+        let typ = self.scanner.take_token()?;
 
         let val = match self.scanner.take_token()? {
             Some(Token(TokenType::Value(v), _, _)) => {
-                match typ {
-                    ValueType::Unknown => {
-                        check_unknown_value_type(v)?
-                    },
-                    t => {
-                        validate_known_value_type(v, t)?
-                    },
-                }
-
+                v
             },
             _ => return Err(ReamError::ParseError(ParseErrorType::MissingValue)),
         };
@@ -131,7 +106,7 @@ impl<'source> Parser<'source> {
             }
         };
 
-        Ok(Some(Variable::new(key, val, ann)))
+        Ok(Some(Variable::new(key, ReamValue::Str(val), ann)))
     }
 
     pub fn parse_symbol_colon(&mut self) -> Result<(), ReamError> {

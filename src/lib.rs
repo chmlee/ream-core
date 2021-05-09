@@ -4,7 +4,7 @@ pub mod ream;
 
 pub use parser::*;
 pub use scanner::*;
-pub use ream::*;
+// pub use ream::*;
 
 use wasm_bindgen::prelude::*;
 

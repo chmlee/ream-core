@@ -127,11 +127,36 @@ impl ReamValue {
 
 #[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
 pub enum ValueType {
+    Unknown,
+    Unit(UnitType),
+    List(UnitType),
+}
+
+impl ValueType {
+    pub fn size(&self) -> usize {
+        match self {
+            Self::Unknown => 0,
+            Self::Unit(u) => u.size(),
+            Self::List(u) => u.size() + 5,
+        }
+    }
+}
+
+#[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
+pub enum UnitType {
     Str,
     Num,
     Bool,
-    Unknown,
-    List(Box<ValueType>),
+}
+
+impl UnitType {
+    pub fn size(&self) -> usize {
+        match *self {
+            Self::Str => 3,
+            Self::Num => 3,
+            Self::Bool => 4,
+        }
+    }
 }
 
 fn is_bool(value: &str) -> bool {
@@ -162,21 +187,21 @@ pub fn check_unknown_value_type(val: String) -> Result<ReamValue, ReamError> {
     }
 }
 
-pub fn validate_known_value_type(val: String, typ: ValueType) -> Result<ReamValue, ReamError> {
+pub fn validate_known_value_type(val: String, typ: &ValueType) -> Result<ReamValue, ReamError> {
     match typ {
-        ValueType::Num => {
+        ValueType::Unit(UnitType::Num) => {
             if !is_num(&val) {
                 return Err(ReamError::TypeError(TypeErrorType::InvalidNumber))
             }
             return Ok(ReamValue::Num(val))
         },
-        ValueType::Bool => {
+        ValueType::Unit(UnitType::Bool) => {
             if !is_bool(&val) {
                 return Err(ReamError::TypeError(TypeErrorType::InvalidBoolean))
             }
             return Ok(ReamValue::Bool(val))
         },
-        ValueType::Str => {
+        ValueType::Unit(UnitType::Str) => {
             return Ok(ReamValue::Str(val))
         },
         _ => unreachable!(),

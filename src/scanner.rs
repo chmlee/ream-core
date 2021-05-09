@@ -36,15 +36,15 @@ pub enum TokenType {
     Class(String),
     Key(String),
 
-    Type(String),
     Value(String),
+    ValueType(ValueType),
 
     Block(usize),
     Annotation(String),
 
     Colon,
     Dash,
-    //Star,
+    Star,
 }
 
 
@@ -92,9 +92,9 @@ impl<'source> Scanner<'source> {
         self.loc.line += 1;
     }
 
-    // pub fn get_source(&self) {
-    //     println!("{:?}", str::from_utf8(self.source).unwrap());
-    // }
+    pub fn get_source(&self) {
+        println!("{:?}", str::from_utf8(self.source).unwrap());
+    }
 
     pub fn get_loc(&self) -> Marker {
         self.loc
@@ -117,7 +117,7 @@ impl<'source> Scanner<'source> {
             | TokenType::Key(s)
             | TokenType::Value(s)
             | TokenType::Annotation(s)   => col - s.len() + 1,
-            TokenType::Type(s)       => col - s.len() - 1,
+            TokenType::ValueType(t)       => col - t.size() - 1,
             _ => col,
         };
         let start = Marker::new(line, col);
@@ -205,6 +205,7 @@ impl<'source> Scanner<'source> {
             b'#' => self.scan_line_header()?,
             b'-' => self.scan_line_variable()?,
             b'>' => self.scan_line_annotation()?,
+            b'*' => self.scan_line_list_item()?,
             _ => return Err(ReamError::ScanError(ScanErrorType::InvalidToken)),
         }
 
@@ -212,6 +213,28 @@ impl<'source> Scanner<'source> {
 
         Ok(())
     }
+
+    pub fn scan_line_list_item(&mut self) -> Result<(), ReamError> {
+        self.push_token(TokenType::Star);
+        self.skip_whitespaces(1)?;
+        self.scan_value()?;
+
+        Ok(())
+    }
+
+    // pub fn scan_token_star(&mut self) -> Result<(), ReamError> {
+    //     self.get_source();
+    //     match self.source {
+    //         [b'*', ref rest @ ..] => {
+    //             self.update_source(rest);
+    //         },
+    //         _ => unreachable!(),
+    //     }
+
+    //     self.push_token(TokenType::Star);
+
+    //     Ok(())
+    // }
 
     pub fn scan_token_block(&mut self) -> Result<(), ReamError> {
         let mut count = 1;
@@ -287,7 +310,7 @@ impl<'source> Scanner<'source> {
     }
 
     pub fn scan_token_value_type(&mut self) -> Result<(), ReamError> {
-        match self.source {
+        let typ: ValueType = match self.source {
             [b'(', rest @ ..] => {
                 self.update_source(rest);
                 let mut typ = String::new();
@@ -298,23 +321,72 @@ impl<'source> Scanner<'source> {
                             break;
                         },
                         [b'\n', ref _rest @ ..]=> {
-                            return Err(ReamError::ScanError(ScanErrorType::InvalidType))
+                            return Err(ReamError::ScanError(ScanErrorType::InvalidToken))
                         },
                         [b, ref rest @ ..] => {
                             typ.push(*b as char);
                             self.update_source(rest);
                         },
                         _ => {
-                            return Err(ReamError::ScanError(ScanErrorType::InvalidType))
+                            return Err(ReamError::ScanError(ScanErrorType::InvalidToken))
                         },
                     }
                 }
-                self.push_token(TokenType::Type(typ));
+                match typ.as_str() {
+                    "str" => ValueType::Unit(UnitType::Str),
+                    "num" => ValueType::Unit(UnitType::Num),
+                    "bool" => ValueType::Unit(UnitType::Bool),
+                    "list str" => ValueType::List(UnitType::Str),
+                    "list num" => ValueType::List(UnitType::Num),
+                    "list bool" => ValueType::List(UnitType::Bool),
+                    _ => return Err(ReamError::TypeError(TypeErrorType::UnknownType)),
+                }
             },
-            _ => {}
+            [_, rest @ ..] => {
+                // self.update_source(rest);
+                ValueType::Unknown
+            },
+            _ => return Err(ReamError::ScanError(ScanErrorType::InvalidToken))
+        };
+
+        // only known type will be pushed to buffer
+        match typ {
+            ValueType::Unknown => {},
+            t => self.push_token(TokenType::ValueType(t)),
         }
+
         Ok(())
     }
+
+    // pub fn scan_token_value_type(&mut self) -> Result<(), ReamError> {
+    //     match self.source {
+    //         [b'(', rest @ ..] => {
+    //             self.update_source(rest);
+    //             let mut typ = String::new();
+    //             loop {
+    //                 match self.source {
+    //                     [b')', ref rest @ ..] => {
+    //                         self.update_source(rest);
+    //                         break;
+    //                     },
+    //                     [b'\n', ref _rest @ ..]=> {
+    //                         return Err(ReamError::ScanError(ScanErrorType::InvalidType))
+    //                     },
+    //                     [b, ref rest @ ..] => {
+    //                         typ.push(*b as char);
+    //                         self.update_source(rest);
+    //                     },
+    //                     _ => {
+    //                         return Err(ReamError::ScanError(ScanErrorType::InvalidType))
+    //                     },
+    //                 }
+    //             }
+    //             self.push_token(TokenType::Type(typ));
+    //         },
+    //         _ => {}
+    //     }
+    //     Ok(())
+    // }
 
     pub fn scan_value(&mut self) -> Result<(), ReamError> {
         let mut value = String::new();
@@ -332,7 +404,7 @@ impl<'source> Scanner<'source> {
         }
 
         if value.is_empty() {
-            return Err(ReamError::ScanError(ScanErrorType::MissingValue));
+            // return Err(ReamError::ScanError(ScanErrorType::MissingValue));
         }
 
         self.push_token(TokenType::Value(value));
@@ -469,7 +541,7 @@ mod tests {
     }
 
     #[test]
-    fn varible_line_string() {
+    fn variable_line_string() {
         //          0        1
         //          123456789012
         let text = "- key: value";
@@ -506,7 +578,7 @@ mod tests {
     fn varible_line_string_with_type() {
         //          0        1
         //          1234567890123456789
-        let text = "- key (type): value";
+        let text = "- key (str): value";
         let mut scanner = Scanner::new(&text);
         let _ = scanner.scan_line();
         assert_eq!(
@@ -523,19 +595,19 @@ mod tests {
                         Marker{ line: 1, col: 5 },
                 ),
                 Token(
-                    TokenType::Type("type".to_string()),
+                    TokenType::ValueType(ValueType::Unit(UnitType::Str)),
                         Marker{ line: 1, col: 7 },
-                        Marker{ line: 1, col: 12 },
+                        Marker{ line: 1, col: 11 },
                 ),
                 Token(
                     TokenType::Colon,
-                        Marker{ line: 1, col: 13 },
-                        Marker{ line: 1, col: 13 },
+                        Marker{ line: 1, col: 12 },
+                        Marker{ line: 1, col: 12 },
                 ),
                 Token(
                     TokenType::Value("value".to_string()),
-                        Marker{ line: 1, col: 15 },
-                        Marker{ line: 1, col: 19 },
+                        Marker{ line: 1, col: 14 },
+                        Marker{ line: 1, col: 18 },
                 ),
             ]
         )
@@ -725,6 +797,32 @@ mod tests {
                     TokenType::Annotation("some annotation".to_string()),
                         Marker{ line: 2, col: 3 },
                         Marker{ line: 2, col: 17 }
+                ),
+            ]
+        )
+
+    }
+
+    #[test]
+    fn list_item() {
+        //          0
+        //          12345678
+        let text = "* item";
+        let mut scanner = Scanner::new(&text);
+        let _ = scanner.scan_line();
+        let _ = scanner.scan_line();
+        assert_eq!(
+            scanner.buffer,
+            vec![
+                Token(
+                    TokenType::Star,
+                        Marker{ line: 1, col: 1 },
+                        Marker{ line: 1, col: 1 },
+                ),
+                Token(
+                    TokenType::Value("item".to_string()),
+                        Marker{ line: 1, col: 3 },
+                        Marker{ line: 1, col: 6 },
                 ),
             ]
         )
