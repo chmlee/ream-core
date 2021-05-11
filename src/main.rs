@@ -12,7 +12,7 @@ use crate::parser::*;
 fn main() {
 
     let matches = App::new("REAM Core")
-        .version("0.1.0")
+        .version("0.3.2")
         .author("Chih-Ming Louis Lee <louis@chihminglee.com>")
         .about("Ream encoder and decoder")
         .arg(
