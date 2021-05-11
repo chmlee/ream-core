@@ -762,7 +762,7 @@ mod tests {
         //          0        1    0        1
         //          1234567890123 12345678901234567
         let text = "- key: value\n> some annotation";
-        let mut scanner = Scanner::new(&text);
+        let mut scanner = Scanner::gew(&text);
         let _ = scanner.scan_line();
         let _ = scanner.scan_line();
         assert_eq!(

@@ -123,6 +123,41 @@ impl ReamValue {
             // List(Vec<ReamValue>),
         }
     }
+
+    pub fn new(val: String, typ: ValueType) -> Result<Self, ReamError> {
+        match typ {
+            // Value type is not specified.
+            // Check for `bool` and `num`.
+            // If netiher, return `str`.
+            ValueType::Unknown => {
+                if is_bool(&val) {
+                    Ok(ReamValue::Bool(val))
+                } else if is_num(&val) {
+                    Ok(ReamValue::Num(val))
+                } else {
+                    Ok(ReamValue::Str(val))
+                }
+            },
+            // Value type is specified.
+            // Validate value type.
+            ValueType::Unit(UnitType::Num) => {
+                if !is_num(&val) {
+                    return Err(ReamError::TypeError(TypeErrorType::InvalidNumber))
+                }
+                return Ok(ReamValue::Num(val))
+            },
+            ValueType::Unit(UnitType::Bool) => {
+                if !is_bool(&val) {
+                    return Err(ReamError::TypeError(TypeErrorType::InvalidBoolean))
+                }
+                return Ok(ReamValue::Bool(val))
+            },
+            ValueType::Unit(UnitType::Str) => {
+                return Ok(ReamValue::Str(val))
+            },
+            _ => unreachable!(),
+        }
+    }
 }
 
 #[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
@@ -173,38 +208,6 @@ fn is_num(value: &str) -> bool {
     match value.parse::<f64>() {
         Ok(_) => true,
         _ => false
-    }
-}
-
-
-pub fn check_unknown_value_type(val: String) -> Result<ReamValue, ReamError> {
-    if is_bool(&val) {
-        Ok(ReamValue::Bool(val))
-    } else if is_num(&val) {
-        Ok(ReamValue::Num(val))
-    } else {
-        Ok(ReamValue::Str(val))
-    }
-}
-
-pub fn validate_known_value_type(val: String, typ: &ValueType) -> Result<ReamValue, ReamError> {
-    match typ {
-        ValueType::Unit(UnitType::Num) => {
-            if !is_num(&val) {
-                return Err(ReamError::TypeError(TypeErrorType::InvalidNumber))
-            }
-            return Ok(ReamValue::Num(val))
-        },
-        ValueType::Unit(UnitType::Bool) => {
-            if !is_bool(&val) {
-                return Err(ReamError::TypeError(TypeErrorType::InvalidBoolean))
-            }
-            return Ok(ReamValue::Bool(val))
-        },
-        ValueType::Unit(UnitType::Str) => {
-            return Ok(ReamValue::Str(val))
-        },
-        _ => unreachable!(),
     }
 }
 
