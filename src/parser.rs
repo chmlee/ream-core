@@ -79,7 +79,7 @@ impl<'source> Parser<'source> {
         Ok(Some(entry))
     }
 
-    pub fn parse_variable(&mut self) -> Result<Option<Variable>, ReamError> {
+    pub fn parse_variable(&mut self) -> Result<Option<ReamVariable>, ReamError> {
 
         let key = self.parse_identifier()?;
 
@@ -91,7 +91,10 @@ impl<'source> Parser<'source> {
 
         let ann = self.parse_annotation()?;
 
-        Ok(Some(Variable::new(key, val, ann)))
+        let val_ann = ReamValueAnnotated::new(val, ann);
+
+
+        Ok(Some(ReamVariable::new(key, val_ann)))
     }
 
     pub fn parse_value(&mut self, typ: ValueType) -> Result<ReamValue, ReamError> {
@@ -103,24 +106,36 @@ impl<'source> Parser<'source> {
     }
 
     pub fn parse_list_items(&mut self, typ: ValueType) -> Result<ReamValue, ReamError>  {
+
+        // unwrap unit type
         let typ = match typ {
             ValueType::List(t) => ValueType::Unit(t),
             ValueType::Unknown => ValueType::Unknown,
             _ => return Err(ReamError::TypeError(TypeErrorType::UnknownType)),
         };
-        let first_item = self.parse_value(typ.clone())?;
-        let mut list = vec![first_item.clone()];
+
+        // parse first item
+        let first_val = self.parse_value(typ.clone())?;
+        let ann = self.parse_annotation()?;
+        let val_ann = ReamValueAnnotated::new(first_val.clone(), ann);
+        let mut list = vec![val_ann.clone()];
+
+        // loop through list items
         loop {
             match self.scanner.peek_token()? {
                 Some(Token(TokenType::Star, _, _)) => {
                     self.scanner.take_token()?; // consume star
-                    println!("found another one!");
-                    let new_item = self.parse_value(typ.clone())?;
-                    list.push(new_item);
+
+                    let new_val = self.parse_value(typ.clone())?;
+                    first_val.match_variant(&new_val)?; // check homogeneity
+                    let ann = self.parse_annotation()?;
+                    let new_val_ann = ReamValueAnnotated::new(new_val, ann);
+                    list.push(new_val_ann);
                 },
                 _ => break,
             }
         }
+
         Ok(ReamValue::List(list))
     }
 
@@ -190,7 +205,7 @@ mod tests {
     //     let mut parser = Parser::new(&text);
     //     let entry_test = parser.parse_entry().unwrap().unwrap();
     //     let mut entry_ans = Entry::new("Title".to_string(), 1);
-    //     let var = Variable::new(
+    //     let var = ReamVariable::new(
     //         String::from("key"),
     //         ReamValue::Str("value".to_string()),
     //         String::from("annotation"),

@@ -5,7 +5,7 @@ pub struct Entry {
     class: String,
     level: usize,
 
-    variables: Vec<Variable>,
+    variables: Vec<ReamVariable>,
     subentries: Vec<Entry>,
 }
 
@@ -20,7 +20,7 @@ impl Entry {
         }
     }
 
-    pub fn push_variable(&mut self, variable: Variable) {
+    pub fn push_variable(&mut self, variable: ReamVariable) {
         self.variables.push(variable);
     }
 
@@ -83,18 +83,16 @@ impl Entry {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct Variable {
+pub struct ReamVariable {
     key: String,
-    value: ReamValue,
-    annotation: String,
+    value: ReamValueAnnotated,
 }
 
-impl Variable {
-    pub fn new(key: String, value: ReamValue, annotation: String) -> Self {
-        Variable {
+impl ReamVariable {
+    pub fn new(key: String, value: ReamValueAnnotated) -> Self {
+        Self {
             key,
             value,
-            annotation,
         }
     }
 
@@ -103,6 +101,24 @@ impl Variable {
     }
 
 }
+#[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
+pub struct ReamValueAnnotated {
+    content: ReamValue,
+    annotation: String,
+}
+
+impl ReamValueAnnotated {
+    pub fn get_value(&self) -> String {
+        self.content.get_value()
+    }
+
+    pub fn new(val: ReamValue, ann: String) -> Self {
+        Self {
+            content: val,
+            annotation: ann,
+        }
+    }
+}
 
 #[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
 pub enum ReamValue {
@@ -110,7 +126,7 @@ pub enum ReamValue {
     Num(String),
     Bool(String),
     Unknown(String),
-    List(Vec<ReamValue>),
+    List(Vec<ReamValueAnnotated>),
 }
 
 impl ReamValue {
@@ -119,19 +135,24 @@ impl ReamValue {
             Self::Str(s) => s.to_string(),
             Self::Num(s) => s.to_string(),
             Self::Bool(s) => s.to_string(),
+            Self::List(v) => {
+                let items: Vec<String> = v.iter()
+                    .map(|val_ann| val_ann.get_value())
+                    .collect();
+                items.join(";")
+            },
             _ => unreachable!(),
             // Unknown(String),
-            // List(Vec<ReamValue>),
         }
     }
 
-    // pub fn match_variant(&self, b: Self) -> Result<(), ReamError> {
-    //     if std::mem::discriminant(self) == std::mem::discriminant(b) {
-    //         Ok(())
-    //     } else {
-    //         Err(ReamError::TypeError(TypeErrorType::HeterogeneousList))
-    //     }
-    // }
+    pub fn match_variant(&self, new_item: &Self) -> Result<(), ReamError> {
+        if std::mem::discriminant(self) == std::mem::discriminant(&new_item) {
+            Ok(())
+        } else {
+            Err(ReamError::TypeError(TypeErrorType::HeterogeneousList))
+        }
+    }
 
     pub fn new(val: String, typ: ValueType) -> Result<Self, ReamError> {
         match typ {
