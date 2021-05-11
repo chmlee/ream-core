@@ -2,24 +2,29 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [0.3.2] - 2021-05-10
 ### Added
-- Syntax for List
+- Add list support
+- Add three types: `list str`, `list num` and `list bool`
+
+### Changed
+- Force list to be homogeneous, or else raise `HeterogeneousList` error
+- Wrap `ReamValue` in `ReamValueAnnotated`
 
 ## [0.3.1] - 2021-04-27
 ### Added
-- README and CHANGELOG
+- Add README and CHANGELOG
 
 ### Fixed
-- Changed CSV separators from semicolons to commas
+- Change CSV separators from semicolons to commas
 
 ## [0.3.0] - 2021-04-26
 ### Added
-- Type checking for numbers and boolean
+- Add type checking for numbers and boolean
 
 ### Changed
-- Changed syntax for number value. Numbers are no longer wrapped by dollar signs.
-- Changed syntax for boolean value. Booleans are no longer wrapped by back ticks.
+- Chang syntax for `num`. Numbers are no longer wrapped by dollar signs.
+- Chang syntax for `bool`. Booleans are no longer wrapped by back ticks.
 
 ### Removed
-- Dropped support for list
+- Drop support for list

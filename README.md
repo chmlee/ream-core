@@ -119,7 +119,7 @@ import init, {ream2csv, ream2ast} from "./ream.js";
 
 init()
   .then(() => {
-    let csv = ream2csv(intput);
+    let csv = ream2csv(input);
     let ast = ream2ast(input);
   })
 ```
