@@ -404,7 +404,7 @@ impl<'source> Scanner<'source> {
         }
 
         if value.is_empty() {
-            // return Err(ReamError::ScanError(ScanErrorType::MissingValue));
+            return Ok(())
         }
 
         self.push_token(TokenType::Value(value));

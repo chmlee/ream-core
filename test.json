@@ -1,1 +1,1 @@
-{"class":"Data","level":1,"variables":[{"key":"key","value":{"Str":"value"},"annotation":""}],"subentries":[]}
+{"class":"Data","level":1,"variables":[{"key":"k","value":{"Str":"v"},"annotation":""},{"key":"key","value":{"List":[{"Num":"1234"},{"Num":"1234"},{"Bool":"TRUE"}]},"annotation":""},{"key":"k1","value":{"Str":"v1"},"annotation":""}],"subentries":[]}

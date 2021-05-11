@@ -101,6 +101,7 @@ impl Variable {
     pub fn get_value(&self) -> String {
         self.value.get_value()
     }
+
 }
 
 #[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
@@ -123,6 +124,14 @@ impl ReamValue {
             // List(Vec<ReamValue>),
         }
     }
+
+    // pub fn match_variant(&self, b: Self) -> Result<(), ReamError> {
+    //     if std::mem::discriminant(self) == std::mem::discriminant(b) {
+    //         Ok(())
+    //     } else {
+    //         Err(ReamError::TypeError(TypeErrorType::HeterogeneousList))
+    //     }
+    // }
 
     pub fn new(val: String, typ: ValueType) -> Result<Self, ReamError> {
         match typ {
@@ -154,6 +163,9 @@ impl ReamValue {
             },
             ValueType::Unit(UnitType::Str) => {
                 return Ok(ReamValue::Str(val))
+            },
+            ValueType::List(ut) => {
+                return Self::new(val, ValueType::Unit(ut.clone()))
             },
             _ => unreachable!(),
         }
@@ -223,6 +235,7 @@ pub enum TypeErrorType {
     UnknownType,
     InvalidNumber,
     InvalidBoolean,
+    HeterogeneousList,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

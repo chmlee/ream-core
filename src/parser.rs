@@ -15,7 +15,7 @@ impl<'source> Parser<'source> {
         }
     }
 
-    pub fn parse_token_header(&mut self) -> Result<usize, ReamError> {
+    pub fn parse_header(&mut self) -> Result<usize, ReamError> {
         let level = match self.scanner.take_token()? {
             Some(Token(TokenType::Header(n), _, _)) => n,
             _ => return Err(ReamError::ParseError(ParseErrorType::MissingHeaderLevel)),
@@ -24,7 +24,7 @@ impl<'source> Parser<'source> {
         Ok(level)
     }
 
-    pub fn parse_token_identifier(&mut self) -> Result<String, ReamError> {
+    pub fn parse_identifier(&mut self) -> Result<String, ReamError> {
         let identifier = match self.scanner.take_token()? {
             Some(Token(TokenType::Class(c), _, _))
             | Some(Token(TokenType::Key(c), _, _))   => c,
@@ -35,11 +35,11 @@ impl<'source> Parser<'source> {
     }
 
     pub fn parse_entry(&mut self) -> Result<Option<Entry>, ReamError> {
-        let level = self.parse_token_header()?;
+        let level = self.parse_header()?;
         // println!("parsing entry level {}", &level);
         self.level = level;
 
-        let class = self.parse_token_identifier()?;
+        let class = self.parse_identifier()?;
 
         let mut entry = Entry::new(class, level);
 
@@ -81,9 +81,63 @@ impl<'source> Parser<'source> {
 
     pub fn parse_variable(&mut self) -> Result<Option<Variable>, ReamError> {
 
-        let key = self.parse_token_identifier()?;
+        let key = self.parse_identifier()?;
 
+        let typ = self.parse_type()?;
 
+        self.parse_colon()?;
+
+        let val = self.parse_value(typ)?;
+
+        let ann = self.parse_annotation()?;
+
+        Ok(Some(Variable::new(key, val, ann)))
+    }
+
+    pub fn parse_value(&mut self, typ: ValueType) -> Result<ReamValue, ReamError> {
+        match self.scanner.take_token()? {
+            Some(Token(TokenType::Value(v), _, _)) => ReamValue::new(v, typ),
+            Some(Token(TokenType::Star, _, _)) => self.parse_list_items(typ),
+            _ => return Err(ReamError::ParseError(ParseErrorType::MissingValue)),
+        }
+    }
+
+    pub fn parse_list_items(&mut self, typ: ValueType) -> Result<ReamValue, ReamError>  {
+        let typ = match typ {
+            ValueType::List(t) => ValueType::Unit(t),
+            ValueType::Unknown => ValueType::Unknown,
+            _ => return Err(ReamError::TypeError(TypeErrorType::UnknownType)),
+        };
+        let first_item = self.parse_value(typ.clone())?;
+        let mut list = vec![first_item.clone()];
+        loop {
+            match self.scanner.peek_token()? {
+                Some(Token(TokenType::Star, _, _)) => {
+                    self.scanner.take_token()?; // consume star
+                    println!("found another one!");
+                    let new_item = self.parse_value(typ.clone())?;
+                    list.push(new_item);
+                },
+                _ => break,
+            }
+        }
+        Ok(ReamValue::List(list))
+    }
+
+    pub fn parse_annotation(&mut self) -> Result<String, ReamError> {
+        match self.scanner.peek_token()? {
+            Some(Token(TokenType::Block(_), _, _)) => {
+                self.scanner.take_token()?; // consume Block
+                match self.scanner.take_token()? {
+                    Some(Token(TokenType::Annotation(s), _, _)) => Ok(s),
+                    _ => unreachable!(),
+                }
+            },
+            _ => Ok(String::from(""))
+        }
+    }
+
+    pub fn parse_type(&mut self) -> Result<ValueType, ReamError> {
         let typ = match self.scanner.peek_token()? {
             // value type is specified
             Some(Token(TokenType::ValueType(_), _, _)) => {
@@ -101,34 +155,10 @@ impl<'source> Parser<'source> {
             _ => return Err(ReamError::ParseError(ParseErrorType::MissingColon)),
         };
 
-        self.parse_token_colon()?;
-
-        let val = match self.scanner.take_token()? {
-            Some(Token(TokenType::Value(v), _, _)) => {
-                v
-            },
-            _ => return Err(ReamError::ParseError(ParseErrorType::MissingValue)),
-        };
-
-        let value = ReamValue::new(val, typ)?;
-
-        let ann = match self.scanner.peek_token()? {
-            Some(Token(TokenType::Block(_), _, _)) => {
-                self.scanner.take_token()?; // consume Block
-                match self.scanner.take_token()? {
-                    Some(Token(TokenType::Annotation(s), _, _)) => s,
-                    _ => unreachable!(),
-                }
-            },
-            _ => {
-                String::from("")
-            }
-        };
-
-        Ok(Some(Variable::new(key, value, ann)))
+        Ok(typ)
     }
 
-    pub fn parse_token_colon(&mut self) -> Result<(), ReamError> {
+    pub fn parse_colon(&mut self) -> Result<(), ReamError> {
         match self.scanner.take_token()? {
             Some(Token(TokenType::Colon, _, _)) => Ok(()),
             _ => return Err(ReamError::ParseError(ParseErrorType::MissingColon)),
