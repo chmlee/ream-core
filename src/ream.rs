@@ -46,9 +46,11 @@ impl Entry {
             let subentries = self.subentries.to_owned();
             let mut children: Vec<Vec<String>> = vec![];
             for subentry in subentries {
-                let item = subentry.flatten_entry();
-                // such ugly code :(
-                children.push(item.first().unwrap().to_vec());
+                let items = subentry.flatten_entry();
+                for item in items {
+                    children.push(item);
+                }
+
             }
             let mut result: Vec<Vec<String>> = vec![];
             for child in children {

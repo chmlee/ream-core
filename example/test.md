@@ -1,20 +1,17 @@
 # Country
-- name: Belgium
-- item:
-  * 1
-  * 2
-- capital: Brussels
-- population: 11433256
-- euro_zone: TRUE
+- name: USA
 
-## Language
-- name: Dutch
-- size: 0.59
+## State
+- name: New York
 
-## Language
-- name: French
-- size: 0.4
+### City
+- name: New York
 
-## Language
-- name: German
-- size: 0.01
+## State
+- name: Illinois
+
+### City
+- name: Urbana
+
+### City
+- name: Champaign

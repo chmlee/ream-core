@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.3] - 2021-05-15
+### Fixed 
+- Fix `flatten_entry`
+
 ## [0.3.2] - 2021-05-10
 ### Added
 - Add list support

@@ -12,7 +12,7 @@ use crate::parser::*;
 fn main() {
 
     let matches = App::new("REAM Core")
-        .version("0.3.2")
+        .version("0.3.3")
         .author("Chih-Ming Louis Lee <louis@chihminglee.com>")
         .about("Ream encoder and decoder")
         .arg(
@@ -45,7 +45,19 @@ fn main() {
                 .required(false)
                 .takes_value(false)
         )
+        .arg(
+            Arg::new("debug")
+                .long("debug")
+                .short('d')
+                .required(false)
+                .takes_value(false)
+        )
         .get_matches();
+
+    // debug starts
+    let debug = matches.is_present("debug");
+    if !debug {
+    // debug ends
 
     let input_path = match matches.value_of("input") {
         Some(p) => p,
@@ -83,4 +95,22 @@ fn main() {
     if print {
         println!("{:#?}", output_text);
     }
+
+    // debug starts
+    } else {
+        debug_fun();
+    }
+    // debug ends
+}
+
+fn debug_fun() {
+
+    let file = fs::read_to_string("./example/test.md").unwrap();
+    let mut parser = Parser::new(&file);
+    let entry = parser.parse_entry().unwrap().unwrap();
+    let result = entry.flatten_entry();
+
+    println!("{:?}", result);
+
+
 }
