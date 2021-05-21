@@ -157,6 +157,13 @@ impl ReamValue {
         }
     }
 
+    pub fn is_variant(&self, typ: ValueType) -> Result<(), ReamError> {
+        match std::mem::discriminant(self) {
+            typ => Ok(()),
+            _ => Err(ReamError::ReferenceError(ReferenceErrorType::IncompatibleTypes)),
+        }
+    }
+
     pub fn new(val: String, typ: ValueType) -> Result<Self, ReamError> {
         match typ {
             // Value type is not specified.
@@ -246,6 +253,7 @@ pub enum ReferenceErrorType {
     InvalidReference,
     EntryClassNotFound,
     VariableKeyNotFound,
+    IncompatibleTypes,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

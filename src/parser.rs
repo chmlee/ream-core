@@ -93,6 +93,7 @@ impl<'source> Parser<'source> {
         let key = self.parse_identifier()?;
 
         let typ = self.parse_type()?;
+        // println!("{:?}", typ);
 
         self.parse_colon()?;
 
@@ -119,7 +120,7 @@ impl<'source> Parser<'source> {
         }
     }
 
-    pub fn get_ref(&mut self, tok: Option<Token>) -> Result<Option<Token>, ReamError> {
+    pub fn get_ref(&mut self, tok: Option<Token>, typ: ValueType) -> Result<ReamValue, ReamError> {
         let (s, c, r) = match tok {
             Some(Token(TokenType::Value(s), c, r)) => {
                 (s, c, r)
@@ -142,7 +143,11 @@ impl<'source> Parser<'source> {
                         None => {
                             return Err(ReamError::ReferenceError(ReferenceErrorType::VariableKeyNotFound));
                         },
-                        Some(s) => Ok(Some(Token::new(TokenType::Value((*s).get_value()), c, r))),
+                        Some(s) => {
+                            println!("{:?}, {:?}", s, typ);
+                            s.is_variant(typ)?;
+                            Ok((*s).clone())
+                        },
                     }
                 }
             }
@@ -152,19 +157,18 @@ impl<'source> Parser<'source> {
     }
 
     pub fn parse_value(&mut self, typ: ValueType) -> Result<ReamValue, ReamError> {
-        let mut val = self.scanner.take_token()?;
-        let typ = match typ {
+        let val = self.scanner.take_token()?;
+        match typ {
             ValueType::Ref(t) => {
-                val = self.get_ref(val)?;
-                println!("{:?}", t);
-                *t
+                self.get_ref(val, *t)
             },
-            _ => typ,
-        };
-        match val {
-            Some(Token(TokenType::Value(v), _, _)) => ReamValue::new(v, typ),
-            Some(Token(TokenType::Star, _, _)) => self.parse_list_items(typ),
-            _ => return Err(ReamError::ParseError(ParseErrorType::MissingValue)),
+            _ => {
+                match val {
+                    Some(Token(TokenType::Value(v), _, _)) => ReamValue::new(v, typ),
+                    Some(Token(TokenType::Star, _, _)) => self.parse_list_items(typ),
+                    _ => return Err(ReamError::ParseError(ParseErrorType::MissingValue)),
+                }
+            }
         }
     }
 
