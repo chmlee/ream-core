@@ -16,6 +16,12 @@ impl fmt::Debug for Token {
     }
 }
 
+impl Token {
+    pub fn new(tt: TokenType, p0: Marker, p1: Marker) -> Self {
+        Self(tt, p0, p1)
+    }
+}
+
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub struct Marker {
     line: usize,
@@ -305,7 +311,7 @@ impl<'source> Scanner<'source> {
             },
         };
 
-        println!("{:?}", &next);
+        // println!("{:?}", &next);
         Ok(next)
     }
 
@@ -317,7 +323,6 @@ impl<'source> Scanner<'source> {
                 [b')', rest @ ..] => {
                     self.update_source(rest);
                     result = self.fold_types(result, self.parse_unit_type(new_type_str.as_str())?)?;
-                    println!("{:?}", &result);
                     return Ok(result);
                 },
                 [b' ', rest @ ..] => {
@@ -331,8 +336,6 @@ impl<'source> Scanner<'source> {
                 [b, rest @ ..] => {
                     self.update_source(rest);
                     new_type_str.push(*b as char);
-                    println!("{:?}", &new_type_str);
-
                 },
                 _ => unreachable!(),
             }

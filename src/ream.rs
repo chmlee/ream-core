@@ -237,6 +237,15 @@ pub enum ReamError {
     ScanError(ScanErrorType),
     ParseError(ParseErrorType),
     TypeError(TypeErrorType),
+    ReferenceError(ReferenceErrorType)
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub enum ReferenceErrorType {
+    ReferenceNotFound,
+    InvalidReference,
+    EntryClassNotFound,
+    VariableKeyNotFound,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

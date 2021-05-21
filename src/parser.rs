@@ -119,13 +119,49 @@ impl<'source> Parser<'source> {
         }
     }
 
-    pub fn get_ref(&mut self, class: String, key: String) -> Option<ReamValue> {
-        let value = self.history.get(&class)?.get(&key)?;
-        Some(value.clone())
+    pub fn get_ref(&mut self, tok: Option<Token>) -> Result<Option<Token>, ReamError> {
+        let (s, c, r) = match tok {
+            Some(Token(TokenType::Value(s), c, r)) => {
+                (s, c, r)
+            },
+            _ => unreachable!(),
+        };
+
+        // split class and key names by `$`
+        let v: Vec<&str> = s
+            .split('$')
+            .collect();
+
+        if let [class, key] = &v[..] {
+            match self.history.get(*class) {
+                None => {
+                    return Err(ReamError::ReferenceError(ReferenceErrorType::EntryClassNotFound));
+                },
+                Some(inner) => {
+                    match inner.get(*key) {
+                        None => {
+                            return Err(ReamError::ReferenceError(ReferenceErrorType::VariableKeyNotFound));
+                        },
+                        Some(s) => Ok(Some(Token::new(TokenType::Value((*s).get_value()), c, r))),
+                    }
+                }
+            }
+        } else {
+           return Err(ReamError::ReferenceError(ReferenceErrorType::InvalidReference));
+        }
     }
 
     pub fn parse_value(&mut self, typ: ValueType) -> Result<ReamValue, ReamError> {
-        match self.scanner.take_token()? {
+        let mut val = self.scanner.take_token()?;
+        let typ = match typ {
+            ValueType::Ref(t) => {
+                val = self.get_ref(val)?;
+                println!("{:?}", t);
+                *t
+            },
+            _ => typ,
+        };
+        match val {
             Some(Token(TokenType::Value(v), _, _)) => ReamValue::new(v, typ),
             Some(Token(TokenType::Star, _, _)) => self.parse_list_items(typ),
             _ => return Err(ReamError::ParseError(ParseErrorType::MissingValue)),
@@ -193,6 +229,7 @@ impl<'source> Parser<'source> {
             // maybe unreachable?
             _ => return Err(ReamError::ParseError(ParseErrorType::MissingColon)),
         };
+
 
         Ok(typ)
     }

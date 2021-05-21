@@ -1,16 +1,13 @@
 # Country
-
-## State
-- name: New York
-
-### City
-- name: New York
+- name: USA
+- key (list num):
+  * 1
+  * 2
+  * 3
 
 ## State
 - name: Illinois
 
 ### City
 - name: Urbana
-
-### City
-- name: Champaign
+- test (ref list str): Country$key
