@@ -1,18 +1,27 @@
-use crate::scanner::*;
 use crate::ream::*;
+use crate::scanner::*;
+use std::collections::{BTreeMap, HashMap};
 
 #[derive(Debug)]
 pub struct Parser<'source> {
     pub scanner: Scanner<'source>,
-    pub level: usize,
+    pub current_level: usize,
+    pub current_class: String,
+    pub history: BTreeMap<String, HashMap<String, ReamValue>>,
 }
 
 impl<'source> Parser<'source> {
     pub fn new(source: &'source str) -> Self {
         Parser {
             scanner: Scanner::new(source),
-            level: 0,
+            current_level: 0,
+            current_class: String::new(),
+            history: BTreeMap::new(),
         }
+    }
+
+    pub fn get_current_class(&self) -> String {
+        self.current_class.clone()
     }
 
     pub fn parse_header(&mut self) -> Result<usize, ReamError> {
@@ -26,8 +35,7 @@ impl<'source> Parser<'source> {
 
     pub fn parse_identifier(&mut self) -> Result<String, ReamError> {
         let identifier = match self.scanner.take_token()? {
-            Some(Token(TokenType::Class(c), _, _))
-            | Some(Token(TokenType::Key(c), _, _))   => c,
+            Some(Token(TokenType::Class(c), _, _)) | Some(Token(TokenType::Key(c), _, _)) => c,
             _ => return Err(ReamError::ParseError(ParseErrorType::MissingIdentifier)),
         };
 
@@ -37,9 +45,10 @@ impl<'source> Parser<'source> {
     pub fn parse_entry(&mut self) -> Result<Option<Entry>, ReamError> {
         let level = self.parse_header()?;
         // println!("parsing entry level {}", &level);
-        self.level = level;
+        self.current_level = level;
 
         let class = self.parse_identifier()?;
+        self.current_class = class.clone();
 
         let mut entry = Entry::new(class, level);
 
@@ -51,10 +60,10 @@ impl<'source> Parser<'source> {
             match result {
                 Some(var) => {
                     entry.push_variable(var);
-                },
+                }
                 None => {
                     return Err(ReamError::ParseError(ParseErrorType::MissingVariable));
-                },
+                }
             }
         }
 
@@ -62,14 +71,15 @@ impl<'source> Parser<'source> {
 
         // loop for subentries
         while let Some(Token(TokenType::Header(next_level), _, _)) = self.scanner.peek_token()? {
-            if next_level.to_owned() == self.level + 1 {               // child
+            if next_level.to_owned() == self.current_level + 1 {
+                // child
                 let subentry = match self.parse_entry()? {
                     Some(sub) => sub,
                     None => return Err(ReamError::ParseError(ParseErrorType::MissingSubentry)),
                 };
                 entry.push_subentry(subentry);
-            } else if next_level.to_owned() <= self.level {
-                self.level -= 1;
+            } else if next_level.to_owned() <= self.current_level {
+                self.current_level -= 1;
                 break;
             } else {
                 return Err(ReamError::ParseError(ParseErrorType::WrongHeaderLevel));
@@ -80,7 +90,6 @@ impl<'source> Parser<'source> {
     }
 
     pub fn parse_variable(&mut self) -> Result<Option<ReamVariable>, ReamError> {
-
         let key = self.parse_identifier()?;
 
         let typ = self.parse_type()?;
@@ -91,10 +100,28 @@ impl<'source> Parser<'source> {
 
         let ann = self.parse_annotation()?;
 
+        self.add_ref(key.clone(), val.clone());
         let val_ann = ReamValueAnnotated::new(val, ann);
 
-
         Ok(Some(ReamVariable::new(key, val_ann)))
+    }
+
+    // TODO: use lifetime
+    pub fn add_ref(&mut self, key: String, val: ReamValue) {
+
+        if !self.history.contains_key(&self.current_class) {
+            let mut new_inner: HashMap<String, ReamValue> = HashMap::new();
+            new_inner.insert(key, val);
+            self.history.insert(self.current_class.clone(), new_inner);
+        } else {
+            let inner = self.history.get_mut(&self.current_class).unwrap();
+            inner.insert(key, val);
+        }
+    }
+
+    pub fn get_ref(&mut self, class: String, key: String) -> Option<ReamValue> {
+        let value = self.history.get(&class)?.get(&key)?;
+        Some(value.clone())
     }
 
     pub fn parse_value(&mut self, typ: ValueType) -> Result<ReamValue, ReamError> {
@@ -105,11 +132,10 @@ impl<'source> Parser<'source> {
         }
     }
 
-    pub fn parse_list_items(&mut self, typ: ValueType) -> Result<ReamValue, ReamError>  {
-
-        // unwrap unit type
+    pub fn parse_list_items(&mut self, typ: ValueType) -> Result<ReamValue, ReamError> {
+        // unwrap list type
         let typ = match typ {
-            ValueType::List(t) => ValueType::Unit(t),
+            ValueType::List(t) => *t,
             ValueType::Unknown => ValueType::Unknown,
             _ => return Err(ReamError::TypeError(TypeErrorType::UnknownType)),
         };
@@ -131,7 +157,7 @@ impl<'source> Parser<'source> {
                     let ann = self.parse_annotation()?;
                     let new_val_ann = ReamValueAnnotated::new(new_val, ann);
                     list.push(new_val_ann);
-                },
+                }
                 _ => break,
             }
         }
@@ -147,8 +173,8 @@ impl<'source> Parser<'source> {
                     Some(Token(TokenType::Annotation(s), _, _)) => Ok(s),
                     _ => unreachable!(),
                 }
-            },
-            _ => Ok(String::from(""))
+            }
+            _ => Ok(String::from("")),
         }
     }
 
@@ -161,11 +187,9 @@ impl<'source> Parser<'source> {
                     _ => unreachable!(),
                 };
                 t
-            },
+            }
             // value type not specified
-            Some(Token(TokenType::Colon, _, _)) => {
-                ValueType::Unknown
-            },
+            Some(Token(TokenType::Colon, _, _)) => ValueType::Unknown,
             // maybe unreachable?
             _ => return Err(ReamError::ParseError(ParseErrorType::MissingColon)),
         };
@@ -179,10 +203,7 @@ impl<'source> Parser<'source> {
             _ => return Err(ReamError::ParseError(ParseErrorType::MissingColon)),
         }
     }
-
-
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -213,5 +234,4 @@ mod tests {
     //     entry_ans.push_variable(var);
     //     assert_eq!(entry_test, entry_ans);
     // }
-
 }

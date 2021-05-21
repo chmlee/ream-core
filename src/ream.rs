@@ -1,4 +1,4 @@
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Entry {
@@ -20,6 +20,10 @@ impl Entry {
         }
     }
 
+    pub fn get_class(&self) -> &String {
+        &self.class
+    }
+
     pub fn push_variable(&mut self, variable: ReamVariable) {
         self.variables.push(variable);
     }
@@ -29,7 +33,9 @@ impl Entry {
     }
 
     pub fn get_variable_values(&self) -> Vec<String> {
-        let output: Vec<String> = self.variables.to_owned()
+        let output: Vec<String> = self
+            .variables
+            .to_owned()
             .into_iter()
             .map(|item| item.get_value())
             .collect();
@@ -40,9 +46,11 @@ impl Entry {
     // TODO: must exist a better way to write this >:(
     pub fn flatten_entry(&self) -> Vec<Vec<String>> {
         let parent = self.get_variable_values();
-        if self.subentries.is_empty() { // terminal node
+        if self.subentries.is_empty() {
+            // terminal node
             vec![parent]
-        } else {                        // contains subentries
+        } else {
+            // contains subentries
             let subentries = self.subentries.to_owned();
             let mut children: Vec<Vec<String>> = vec![];
             for subentry in subentries {
@@ -50,7 +58,6 @@ impl Entry {
                 for item in items {
                     children.push(item);
                 }
-
             }
             let mut result: Vec<Vec<String>> = vec![];
             for child in children {
@@ -67,7 +74,9 @@ impl Entry {
 
     pub fn to_csv_str(&self) -> Result<String, ReamError> {
         let rows = self.flatten_entry();
-        let raw = rows.iter().fold(String::new(), |acc, row| acc + &row.join(",") + "\n");
+        let raw = rows
+            .iter()
+            .fold(String::new(), |acc, row| acc + &row.join(",") + "\n");
         Ok(raw)
     }
 
@@ -80,8 +89,6 @@ impl Entry {
         let raw = serde_json::to_string(&self).unwrap();
         Ok(raw)
     }
-
-
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -92,16 +99,12 @@ pub struct ReamVariable {
 
 impl ReamVariable {
     pub fn new(key: String, value: ReamValueAnnotated) -> Self {
-        Self {
-            key,
-            value,
-        }
+        Self { key, value }
     }
 
     pub fn get_value(&self) -> String {
         self.value.get_value()
     }
-
 }
 #[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
 pub struct ReamValueAnnotated {
@@ -138,11 +141,9 @@ impl ReamValue {
             Self::Num(s) => s.to_string(),
             Self::Bool(s) => s.to_string(),
             Self::List(v) => {
-                let items: Vec<String> = v.iter()
-                    .map(|val_ann| val_ann.get_value())
-                    .collect();
+                let items: Vec<String> = v.iter().map(|val_ann| val_ann.get_value()).collect();
                 items.join(";")
-            },
+            }
             _ => unreachable!(),
             // Unknown(String),
         }
@@ -169,27 +170,23 @@ impl ReamValue {
                 } else {
                     Ok(ReamValue::Str(val))
                 }
-            },
+            }
             // Value type is specified.
             // Validate value type.
-            ValueType::Unit(UnitType::Num) => {
+            ValueType::Num => {
                 if !is_num(&val) {
-                    return Err(ReamError::TypeError(TypeErrorType::InvalidNumber))
+                    return Err(ReamError::TypeError(TypeErrorType::InvalidNumber));
                 }
-                return Ok(ReamValue::Num(val))
-            },
-            ValueType::Unit(UnitType::Bool) => {
+                return Ok(ReamValue::Num(val));
+            }
+            ValueType::Bool => {
                 if !is_bool(&val) {
-                    return Err(ReamError::TypeError(TypeErrorType::InvalidBoolean))
+                    return Err(ReamError::TypeError(TypeErrorType::InvalidBoolean));
                 }
-                return Ok(ReamValue::Bool(val))
-            },
-            ValueType::Unit(UnitType::Str) => {
-                return Ok(ReamValue::Str(val))
-            },
-            ValueType::List(ut) => {
-                return Self::new(val, ValueType::Unit(ut.clone()))
-            },
+                return Ok(ReamValue::Bool(val));
+            }
+            ValueType::Str => return Ok(ReamValue::Str(val)),
+            ValueType::List(t) => return Self::new(val, *t.clone()),
             _ => unreachable!(),
         }
     }
@@ -197,31 +194,18 @@ impl ReamValue {
 
 #[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
 pub enum ValueType {
+    Str,
+    Num,
+    Bool,
     Unknown,
-    Unit(UnitType),
-    List(UnitType),
+    List(Box<ValueType>),
 }
 
 impl ValueType {
     pub fn size(&self) -> usize {
         match self {
             Self::Unknown => 0,
-            Self::Unit(u) => u.size(),
             Self::List(u) => u.size() + 5,
-        }
-    }
-}
-
-#[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
-pub enum UnitType {
-    Str,
-    Num,
-    Bool,
-}
-
-impl UnitType {
-    pub fn size(&self) -> usize {
-        match *self {
             Self::Str => 3,
             Self::Num => 3,
             Self::Bool => 4,
@@ -242,7 +226,7 @@ fn is_num(value: &str) -> bool {
     // re.is_match(value)
     match value.parse::<f64>() {
         Ok(_) => true,
-        _ => false
+        _ => false,
     }
 }
 

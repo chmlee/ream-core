@@ -1,6 +1,6 @@
-pub mod scanner;
 pub mod parser;
 pub mod ream;
+pub mod scanner;
 
 pub use parser::*;
 pub use scanner::*;
@@ -12,7 +12,11 @@ use wasm_bindgen::prelude::*;
 pub fn ream2ast(source: &str) -> String {
     let mut parser = Parser::new(&source);
     let result = parser.parse_entry();
-    let output = result.expect("a").expect("b").to_ast_str_pretty().expect("c");
+    let output = result
+        .expect("a")
+        .expect("b")
+        .to_ast_str_pretty()
+        .expect("c");
 
     output
 }

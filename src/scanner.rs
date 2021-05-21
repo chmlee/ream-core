@@ -8,8 +8,11 @@ pub struct Token(pub TokenType, pub Marker, pub Marker);
 
 impl fmt::Debug for Token {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:?}: ({}, {}) - ({}, {})",
-               self.0 , self.1.line, self.1.col, self.2.line, self.2.col)
+        write!(
+            f,
+            "{:?}: ({}, {}) - ({}, {})",
+            self.0, self.1.line, self.1.col, self.2.line, self.2.col
+        )
     }
 }
 
@@ -21,16 +24,12 @@ pub struct Marker {
 
 impl Marker {
     pub fn new(line: usize, col: usize) -> Self {
-        Marker {
-            line,
-            col,
-        }
+        Marker { line, col }
     }
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum TokenType {
-
     Header(usize),
 
     Class(String),
@@ -47,22 +46,10 @@ pub enum TokenType {
     Star,
 }
 
-
-// impl fmt::Debug for ScanError {
-//     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-//         match &*self {
-//             InvalidToken{ expect, got } => {
-//                 write!(f, "expecting {:?}, got {:?}", expect, got)
-//             }
-//         }
-//     }
-// }
-
 #[derive(Debug, Clone)]
-pub struct Scanner<'source>  {
+pub struct Scanner<'source> {
     pub source: &'source [u8],
     pub buffer: VecDeque<Token>,
-
 
     pub eof: bool,
     pub loc: Marker,
@@ -108,16 +95,15 @@ impl<'source> Scanner<'source> {
     pub fn push_token(&mut self, tt: TokenType) {
         let end = self.get_loc();
 
-        let Marker{ line, col } = self.get_loc();
+        let Marker { line, col } = self.get_loc();
         let col = match &tt {
-            TokenType::Dash
-            | TokenType::Colon       => col,
-            TokenType::Header(n)     => col - n + 1,
+            TokenType::Dash | TokenType::Colon => col,
+            TokenType::Header(n) => col - n + 1,
             TokenType::Class(s)
             | TokenType::Key(s)
             | TokenType::Value(s)
-            | TokenType::Annotation(s)   => col - s.len() + 1,
-            TokenType::ValueType(t)       => col - t.size() - 1,
+            | TokenType::Annotation(s) => col - s.len() + 1,
+            TokenType::ValueType(t) => col - t.size() - 1,
             _ => col,
         };
         let start = Marker::new(line, col);
@@ -128,7 +114,7 @@ impl<'source> Scanner<'source> {
     pub fn peek_token(&mut self) -> Result<Option<&Token>, ReamError> {
         if self.buffer.is_empty() {
             if self.eof {
-                return Ok(None);   // End of File
+                return Ok(None); // End of File
             } else {
                 self.scan_line()?; // add tokens to buffer
             }
@@ -141,7 +127,7 @@ impl<'source> Scanner<'source> {
     pub fn take_token(&mut self) -> Result<Option<Token>, ReamError> {
         if self.buffer.is_empty() {
             if self.eof {
-                return Ok(None);   // End of File
+                return Ok(None); // End of File
             } else {
                 self.scan_line()?; // add tokens to buffer
             }
@@ -155,30 +141,30 @@ impl<'source> Scanner<'source> {
         let mut count = 0;
         loop {
             match self.source {
-                [b' ', ref rest @ ..] => { // TODO: add all utf8 whitespaces
+                [b' ', ref rest @ ..] => {
+                    // TODO: add all utf8 whitespaces
                     self.update_source(rest);
                     count += 1;
-                },
+                }
                 _ => break,
             }
         }
 
         if count < min {
-            return Err(ReamError::ScanError(ScanErrorType::WrongHeaderLevel))
+            return Err(ReamError::ScanError(ScanErrorType::WrongHeaderLevel));
         }
 
         Ok(())
     }
 
     pub fn scan_line(&mut self) -> Result<(), ReamError> {
-
         // ignore all empty lines
         loop {
             match self.source {
                 [b'\n', ref rest @ ..] => {
                     self.update_source(rest);
                     self.next_line();
-                },
+                }
                 [] => {
                     self.eof = true;
                     return Ok(());
@@ -193,13 +179,12 @@ impl<'source> Scanner<'source> {
             [token, ref rest @ ..] => {
                 self.update_source(rest);
                 token
-            },
+            }
             [] => {
                 self.eof = true;
                 return Ok(());
-            },
+            }
         };
-
 
         match token {
             b'#' => self.scan_line_header()?,
@@ -222,20 +207,6 @@ impl<'source> Scanner<'source> {
         Ok(())
     }
 
-    // pub fn scan_token_star(&mut self) -> Result<(), ReamError> {
-    //     self.get_source();
-    //     match self.source {
-    //         [b'*', ref rest @ ..] => {
-    //             self.update_source(rest);
-    //         },
-    //         _ => unreachable!(),
-    //     }
-
-    //     self.push_token(TokenType::Star);
-
-    //     Ok(())
-    // }
-
     pub fn scan_token_block(&mut self) -> Result<(), ReamError> {
         let mut count = 1;
         loop {
@@ -243,10 +214,10 @@ impl<'source> Scanner<'source> {
                 [b'>', ref rest @ ..] => {
                     count += 1;
                     self.update_source(rest);
-                },
-                [b' ' , ..] => break,
+                }
+                [b' ', ..] => break,
                 [b'\n', ..] => break,
-                _=> return Err(ReamError::ScanError(ScanErrorType::InvalidToken)),
+                _ => return Err(ReamError::ScanError(ScanErrorType::InvalidToken)),
             }
         }
         self.push_token(TokenType::Block(count));
@@ -260,13 +231,12 @@ impl<'source> Scanner<'source> {
             match self.source {
                 [b'\n', ref _rest @ ..] => {
                     break;
-                },
+                }
                 [b, ref rest @ ..] => {
                     ann.push(*b as char);
                     self.update_source(rest);
-                },
+                }
                 _ => break, // TODO: ?
-
             }
         }
 
@@ -276,13 +246,11 @@ impl<'source> Scanner<'source> {
     }
 
     pub fn scan_line_annotation(&mut self) -> Result<(), ReamError> {
-
         self.scan_token_block()?;
         self.skip_whitespaces(1)?;
         self.scan_token_annotation()?;
 
         Ok(())
-
     }
 
     pub fn scan_line_header(&mut self) -> Result<(), ReamError> {
@@ -292,7 +260,6 @@ impl<'source> Scanner<'source> {
 
         Ok(())
     }
-
 
     pub fn scan_line_variable(&mut self) -> Result<(), ReamError> {
         // - key (type): value
@@ -319,74 +286,42 @@ impl<'source> Scanner<'source> {
                         [b')', ref rest @ ..] => {
                             self.update_source(rest);
                             break;
-                        },
-                        [b'\n', ref _rest @ ..]=> {
+                        }
+                        [b'\n', ref _rest @ ..] => {
                             return Err(ReamError::ScanError(ScanErrorType::InvalidToken))
-                        },
+                        }
                         [b, ref rest @ ..] => {
                             typ.push(*b as char);
                             self.update_source(rest);
-                        },
-                        _ => {
-                            return Err(ReamError::ScanError(ScanErrorType::InvalidToken))
-                        },
+                        }
+                        _ => return Err(ReamError::ScanError(ScanErrorType::InvalidToken)),
                     }
                 }
                 match typ.as_str() {
-                    "str" => ValueType::Unit(UnitType::Str),
-                    "num" => ValueType::Unit(UnitType::Num),
-                    "bool" => ValueType::Unit(UnitType::Bool),
-                    "list str" => ValueType::List(UnitType::Str),
-                    "list num" => ValueType::List(UnitType::Num),
-                    "list bool" => ValueType::List(UnitType::Bool),
+                    "str" => ValueType::Str,
+                    "num" => ValueType::Num,
+                    "bool" => ValueType::Bool,
+                    "list str" => ValueType::List(Box::new(ValueType::Str)),
+                    "list num" => ValueType::List(Box::new(ValueType::Num)),
+                    "list bool" => ValueType::List(Box::new(ValueType::Bool)),
                     _ => return Err(ReamError::TypeError(TypeErrorType::UnknownType)),
                 }
-            },
+            }
             [_, rest @ ..] => {
                 // self.update_source(rest);
                 ValueType::Unknown
-            },
-            _ => return Err(ReamError::ScanError(ScanErrorType::InvalidToken))
+            }
+            _ => return Err(ReamError::ScanError(ScanErrorType::InvalidToken)),
         };
 
         // only known type will be pushed to buffer
         match typ {
-            ValueType::Unknown => {},
+            ValueType::Unknown => {}
             t => self.push_token(TokenType::ValueType(t)),
         }
 
         Ok(())
     }
-
-    // pub fn scan_token_value_type(&mut self) -> Result<(), ReamError> {
-    //     match self.source {
-    //         [b'(', rest @ ..] => {
-    //             self.update_source(rest);
-    //             let mut typ = String::new();
-    //             loop {
-    //                 match self.source {
-    //                     [b')', ref rest @ ..] => {
-    //                         self.update_source(rest);
-    //                         break;
-    //                     },
-    //                     [b'\n', ref _rest @ ..]=> {
-    //                         return Err(ReamError::ScanError(ScanErrorType::InvalidType))
-    //                     },
-    //                     [b, ref rest @ ..] => {
-    //                         typ.push(*b as char);
-    //                         self.update_source(rest);
-    //                     },
-    //                     _ => {
-    //                         return Err(ReamError::ScanError(ScanErrorType::InvalidType))
-    //                     },
-    //                 }
-    //             }
-    //             self.push_token(TokenType::Type(typ));
-    //         },
-    //         _ => {}
-    //     }
-    //     Ok(())
-    // }
 
     pub fn scan_value(&mut self) -> Result<(), ReamError> {
         let mut value = String::new();
@@ -394,17 +329,17 @@ impl<'source> Scanner<'source> {
             match self.source {
                 [b'\n', ref _rest @ ..] => {
                     break;
-                },
+                }
                 [b, ref rest @ ..] => {
                     value.push(*b as char);
                     self.update_source(rest);
-                },
+                }
                 _ => break, // TODO: ?
             }
         }
 
         if value.is_empty() {
-            return Ok(())
+            return Ok(());
         }
 
         self.push_token(TokenType::Value(value));
@@ -416,7 +351,7 @@ impl<'source> Scanner<'source> {
         match self.source {
             [b':', ref rest @ ..] => {
                 self.update_source(rest);
-            },
+            }
             _ => return Err(ReamError::ScanError(ScanErrorType::MissingColon)),
         }
 
@@ -432,8 +367,8 @@ impl<'source> Scanner<'source> {
                 [b'#', ref rest @ ..] => {
                     count += 1;
                     self.update_source(rest);
-                },
-                [b' ' , ..] => break,
+                }
+                [b' ', ..] => break,
                 [b'\n', ..] => break,
                 // TODO: other?
                 _ => return Err(ReamError::ScanError(ScanErrorType::InvalidToken)),
@@ -450,14 +385,14 @@ impl<'source> Scanner<'source> {
             match self.source {
                 [b':', ref _rest @ ..] => {
                     break;
-                },
+                }
                 [b' ', ref _rest @ ..] => {
                     break;
-                },
+                }
                 [b, ref rest @ ..] => {
                     name.push(*b as char);
                     self.update_source(rest);
-                },
+                }
                 _ => return Err(ReamError::ScanError(ScanErrorType::MissingKey)),
             }
         }
@@ -472,11 +407,11 @@ impl<'source> Scanner<'source> {
             match self.source {
                 [b'\n', ref _rest @ ..] => {
                     break;
-                },
+                }
                 [b, ref rest @ ..] => {
                     name.push(*b as char);
                     self.update_source(rest);
-                },
+                }
                 _ => break,
             }
         }
@@ -493,18 +428,17 @@ impl<'source> Scanner<'source> {
     pub fn end_of_line(&mut self) -> Result<(), ReamError> {
         self.skip_whitespaces(0)?;
         match self.source {
-
             [b'\n', ref rest @ ..] => {
                 self.next_line();
                 self.source = rest
-            },
+            }
             [] => {
                 println!("end of file");
                 self.eof = true;
-            },
+            }
             _ => {
                 return Err(ReamError::ScanError(ScanErrorType::MissingEOL));
-            },
+            }
         }
         // println!("end of line!");
 
@@ -528,13 +462,13 @@ mod tests {
             vec![
                 Token(
                     TokenType::Header(1),
-                        Marker{ line: 1, col: 1 },
-                        Marker{ line: 1, col: 1 }
+                    Marker { line: 1, col: 1 },
+                    Marker { line: 1, col: 1 }
                 ),
                 Token(
                     TokenType::Class("Title".to_string()),
-                        Marker{ line: 1, col: 3 },
-                        Marker{ line: 1, col: 7 }
+                    Marker { line: 1, col: 3 },
+                    Marker { line: 1, col: 7 }
                 ),
             ]
         )
@@ -552,23 +486,23 @@ mod tests {
             vec![
                 Token(
                     TokenType::Dash,
-                        Marker{ line: 1, col: 1 },
-                        Marker{ line: 1, col: 1 },
+                    Marker { line: 1, col: 1 },
+                    Marker { line: 1, col: 1 },
                 ),
                 Token(
                     TokenType::Key("key".to_string()),
-                        Marker{ line: 1, col: 3 },
-                        Marker{ line: 1, col: 5 },
+                    Marker { line: 1, col: 3 },
+                    Marker { line: 1, col: 5 },
                 ),
                 Token(
                     TokenType::Colon,
-                        Marker{ line: 1, col: 6 },
-                        Marker{ line: 1, col: 6 },
+                    Marker { line: 1, col: 6 },
+                    Marker { line: 1, col: 6 },
                 ),
                 Token(
                     TokenType::Value("value".to_string()),
-                        Marker{ line: 1, col: 8 },
-                        Marker{ line: 1, col: 12 },
+                    Marker { line: 1, col: 8 },
+                    Marker { line: 1, col: 12 },
                 ),
             ]
         )
@@ -586,28 +520,28 @@ mod tests {
             vec![
                 Token(
                     TokenType::Dash,
-                        Marker{ line: 1, col: 1 },
-                        Marker{ line: 1, col: 1 },
+                    Marker { line: 1, col: 1 },
+                    Marker { line: 1, col: 1 },
                 ),
                 Token(
                     TokenType::Key("key".to_string()),
-                        Marker{ line: 1, col: 3 },
-                        Marker{ line: 1, col: 5 },
+                    Marker { line: 1, col: 3 },
+                    Marker { line: 1, col: 5 },
                 ),
                 Token(
                     TokenType::ValueType(ValueType::Unit(UnitType::Str)),
-                        Marker{ line: 1, col: 7 },
-                        Marker{ line: 1, col: 11 },
+                    Marker { line: 1, col: 7 },
+                    Marker { line: 1, col: 11 },
                 ),
                 Token(
                     TokenType::Colon,
-                        Marker{ line: 1, col: 12 },
-                        Marker{ line: 1, col: 12 },
+                    Marker { line: 1, col: 12 },
+                    Marker { line: 1, col: 12 },
                 ),
                 Token(
                     TokenType::Value("value".to_string()),
-                        Marker{ line: 1, col: 14 },
-                        Marker{ line: 1, col: 18 },
+                    Marker { line: 1, col: 14 },
+                    Marker { line: 1, col: 18 },
                 ),
             ]
         )
@@ -625,23 +559,23 @@ mod tests {
             vec![
                 Token(
                     TokenType::Dash,
-                        Marker{ line: 1, col: 2 },
-                        Marker{ line: 1, col: 2 },
+                    Marker { line: 1, col: 2 },
+                    Marker { line: 1, col: 2 },
                 ),
                 Token(
                     TokenType::Key("key".to_string()),
-                        Marker{ line: 1, col: 4 },
-                        Marker{ line: 1, col: 6 },
+                    Marker { line: 1, col: 4 },
+                    Marker { line: 1, col: 6 },
                 ),
                 Token(
                     TokenType::Colon,
-                        Marker{ line: 1, col: 8 },
-                        Marker{ line: 1, col: 8 },
+                    Marker { line: 1, col: 8 },
+                    Marker { line: 1, col: 8 },
                 ),
                 Token(
                     TokenType::Value("value".to_string()),
-                        Marker{ line: 1, col: 10 },
-                        Marker{ line: 1, col: 14 },
+                    Marker { line: 1, col: 10 },
+                    Marker { line: 1, col: 14 },
                 ),
             ]
         )
@@ -658,33 +592,33 @@ mod tests {
             vec![
                 Token(
                     TokenType::Header(1),
-                        Marker{ line: 1, col: 1 },
-                        Marker{ line: 1, col: 1 }
+                    Marker { line: 1, col: 1 },
+                    Marker { line: 1, col: 1 }
                 ),
                 Token(
                     TokenType::Class("Title".to_string()),
-                        Marker{ line: 1, col: 3 },
-                        Marker{ line: 1, col: 7 }
+                    Marker { line: 1, col: 3 },
+                    Marker { line: 1, col: 7 }
                 ),
                 Token(
                     TokenType::Dash,
-                        Marker{ line: 2, col: 1 },
-                        Marker{ line: 2, col: 1 },
+                    Marker { line: 2, col: 1 },
+                    Marker { line: 2, col: 1 },
                 ),
                 Token(
                     TokenType::Key("key".to_string()),
-                        Marker{ line: 2, col: 3 },
-                        Marker{ line: 2, col: 5 },
+                    Marker { line: 2, col: 3 },
+                    Marker { line: 2, col: 5 },
                 ),
                 Token(
                     TokenType::Colon,
-                        Marker{ line: 2, col: 6 },
-                        Marker{ line: 2, col: 6 },
+                    Marker { line: 2, col: 6 },
+                    Marker { line: 2, col: 6 },
                 ),
                 Token(
                     TokenType::Value("value".to_string()),
-                        Marker{ line: 2, col: 8 },
-                        Marker{ line: 2, col: 12 },
+                    Marker { line: 2, col: 8 },
+                    Marker { line: 2, col: 12 },
                 ),
             ]
         )
@@ -701,33 +635,33 @@ mod tests {
             vec![
                 Token(
                     TokenType::Header(1),
-                        Marker{ line: 1, col: 1 },
-                        Marker{ line: 1, col: 1 }
+                    Marker { line: 1, col: 1 },
+                    Marker { line: 1, col: 1 }
                 ),
                 Token(
                     TokenType::Class("Title".to_string()),
-                        Marker{ line: 1, col: 3 },
-                        Marker{ line: 1, col: 7 }
+                    Marker { line: 1, col: 3 },
+                    Marker { line: 1, col: 7 }
                 ),
                 Token(
                     TokenType::Dash,
-                        Marker{ line: 3, col: 1 },
-                        Marker{ line: 3, col: 1 },
+                    Marker { line: 3, col: 1 },
+                    Marker { line: 3, col: 1 },
                 ),
                 Token(
                     TokenType::Key("key".to_string()),
-                        Marker{ line: 3, col: 3 },
-                        Marker{ line: 3, col: 5 },
+                    Marker { line: 3, col: 3 },
+                    Marker { line: 3, col: 5 },
                 ),
                 Token(
                     TokenType::Colon,
-                        Marker{ line: 3, col: 6 },
-                        Marker{ line: 3, col: 6 },
+                    Marker { line: 3, col: 6 },
+                    Marker { line: 3, col: 6 },
                 ),
                 Token(
                     TokenType::Value("value".to_string()),
-                        Marker{ line: 3, col: 8 },
-                        Marker{ line: 3, col: 12 },
+                    Marker { line: 3, col: 8 },
+                    Marker { line: 3, col: 12 },
                 ),
             ]
         )
@@ -745,13 +679,13 @@ mod tests {
             vec![
                 Token(
                     TokenType::Block(1),
-                        Marker{ line: 1, col: 1 },
-                        Marker{ line: 1, col: 1 }
+                    Marker { line: 1, col: 1 },
+                    Marker { line: 1, col: 1 }
                 ),
                 Token(
                     TokenType::Annotation("hello world".to_string()),
-                        Marker{ line: 1, col: 3 },
-                        Marker{ line: 1, col: 13 }
+                    Marker { line: 1, col: 3 },
+                    Marker { line: 1, col: 13 }
                 ),
             ]
         )
@@ -762,7 +696,7 @@ mod tests {
         //          0        1    0        1
         //          1234567890123 12345678901234567
         let text = "- key: value\n> some annotation";
-        let mut scanner = Scanner::gew(&text);
+        let mut scanner = Scanner::new(&text);
         let _ = scanner.scan_line();
         let _ = scanner.scan_line();
         assert_eq!(
@@ -770,37 +704,36 @@ mod tests {
             vec![
                 Token(
                     TokenType::Dash,
-                        Marker{ line: 1, col: 1 },
-                        Marker{ line: 1, col: 1 },
+                    Marker { line: 1, col: 1 },
+                    Marker { line: 1, col: 1 },
                 ),
                 Token(
                     TokenType::Key("key".to_string()),
-                        Marker{ line: 1, col: 3 },
-                        Marker{ line: 1, col: 5 },
+                    Marker { line: 1, col: 3 },
+                    Marker { line: 1, col: 5 },
                 ),
                 Token(
                     TokenType::Colon,
-                        Marker{ line: 1, col: 6 },
-                        Marker{ line: 1, col: 6 },
+                    Marker { line: 1, col: 6 },
+                    Marker { line: 1, col: 6 },
                 ),
                 Token(
                     TokenType::Value("value".to_string()),
-                        Marker{ line: 1, col: 8 },
-                        Marker{ line: 1, col: 12 },
+                    Marker { line: 1, col: 8 },
+                    Marker { line: 1, col: 12 },
                 ),
                 Token(
                     TokenType::Block(1),
-                        Marker{ line: 2, col: 1 },
-                        Marker{ line: 2, col: 1 }
+                    Marker { line: 2, col: 1 },
+                    Marker { line: 2, col: 1 }
                 ),
                 Token(
                     TokenType::Annotation("some annotation".to_string()),
-                        Marker{ line: 2, col: 3 },
-                        Marker{ line: 2, col: 17 }
+                    Marker { line: 2, col: 3 },
+                    Marker { line: 2, col: 17 }
                 ),
             ]
         )
-
     }
 
     #[test]
@@ -816,16 +749,15 @@ mod tests {
             vec![
                 Token(
                     TokenType::Star,
-                        Marker{ line: 1, col: 1 },
-                        Marker{ line: 1, col: 1 },
+                    Marker { line: 1, col: 1 },
+                    Marker { line: 1, col: 1 },
                 ),
                 Token(
                     TokenType::Value("item".to_string()),
-                        Marker{ line: 1, col: 3 },
-                        Marker{ line: 1, col: 6 },
+                    Marker { line: 1, col: 3 },
+                    Marker { line: 1, col: 6 },
                 ),
             ]
         )
-
     }
 }
