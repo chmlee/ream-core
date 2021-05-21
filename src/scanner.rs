@@ -276,39 +276,76 @@ impl<'source> Scanner<'source> {
         Ok(())
     }
 
+    pub fn parse_unit_type(&self, t: &str) -> Result<ValueType, ReamError> {
+        let typ = match t {
+            "str" => ValueType::Str,
+            "num" => ValueType::Num,
+            "bool" => ValueType::Bool,
+            "list" => ValueType::List(Box::new(ValueType::Unknown)),
+            "ref" => ValueType::Ref(Box::new(ValueType::Unknown)),
+            _ => return Err(ReamError::TypeError(TypeErrorType::UnknownType)),
+        };
+
+        Ok(typ)
+    }
+
+    pub fn fold_types(&self, acc: ValueType, new_typ: ValueType) -> Result<ValueType, ReamError> {
+        let next = match acc {
+            ValueType::Unknown => {
+                new_typ
+            },
+            ValueType::List(_) => {
+                ValueType::List(Box::new(new_typ))
+            },
+            ValueType::Ref(_) => {
+                ValueType::Ref(Box::new(new_typ))
+            },
+            _ => {
+                return Err(ReamError::TypeError(TypeErrorType::UnknownType));
+            },
+        };
+
+        println!("{:?}", &next);
+        Ok(next)
+    }
+
+    pub fn scan_value_type_inner(&mut self) -> Result<ValueType, ReamError> {
+        let mut result = ValueType::Unknown;
+        let mut new_type_str = String::new();
+        loop {
+            match self.source {
+                [b')', rest @ ..] => {
+                    self.update_source(rest);
+                    result = self.fold_types(result, self.parse_unit_type(new_type_str.as_str())?)?;
+                    println!("{:?}", &result);
+                    return Ok(result);
+                },
+                [b' ', rest @ ..] => {
+                    self.update_source(rest);
+                    result = self.fold_types(result, self.parse_unit_type(new_type_str.as_str())?)?;
+                    new_type_str = String::new();
+                },
+                [b'\n', _rest @ ..] => {
+                    return Err(ReamError::TypeError(TypeErrorType::UnknownType));
+                },
+                [b, rest @ ..] => {
+                    self.update_source(rest);
+                    new_type_str.push(*b as char);
+                    println!("{:?}", &new_type_str);
+
+                },
+                _ => unreachable!(),
+            }
+        };
+    }
+
     pub fn scan_token_value_type(&mut self) -> Result<(), ReamError> {
         let typ: ValueType = match self.source {
             [b'(', rest @ ..] => {
                 self.update_source(rest);
-                let mut typ = String::new();
-                loop {
-                    match self.source {
-                        [b')', ref rest @ ..] => {
-                            self.update_source(rest);
-                            break;
-                        }
-                        [b'\n', ref _rest @ ..] => {
-                            return Err(ReamError::ScanError(ScanErrorType::InvalidToken))
-                        }
-                        [b, ref rest @ ..] => {
-                            typ.push(*b as char);
-                            self.update_source(rest);
-                        }
-                        _ => return Err(ReamError::ScanError(ScanErrorType::InvalidToken)),
-                    }
-                }
-                match typ.as_str() {
-                    "str" => ValueType::Str,
-                    "num" => ValueType::Num,
-                    "bool" => ValueType::Bool,
-                    "list str" => ValueType::List(Box::new(ValueType::Str)),
-                    "list num" => ValueType::List(Box::new(ValueType::Num)),
-                    "list bool" => ValueType::List(Box::new(ValueType::Bool)),
-                    _ => return Err(ReamError::TypeError(TypeErrorType::UnknownType)),
-                }
+                self.scan_value_type_inner()?
             }
-            [_, rest @ ..] => {
-                // self.update_source(rest);
+            [_, _rest @ ..] => {
                 ValueType::Unknown
             }
             _ => return Err(ReamError::ScanError(ScanErrorType::InvalidToken)),
@@ -316,7 +353,7 @@ impl<'source> Scanner<'source> {
 
         // only known type will be pushed to buffer
         match typ {
-            ValueType::Unknown => {}
+            ValueType::Unknown => {},
             t => self.push_token(TokenType::ValueType(t)),
         }
 

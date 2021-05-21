@@ -199,16 +199,18 @@ pub enum ValueType {
     Bool,
     Unknown,
     List(Box<ValueType>),
+    Ref(Box<ValueType>),
 }
 
 impl ValueType {
     pub fn size(&self) -> usize {
         match self {
             Self::Unknown => 0,
-            Self::List(u) => u.size() + 5,
             Self::Str => 3,
             Self::Num => 3,
             Self::Bool => 4,
+            Self::List(u) => (*u).size() + 5,
+            Self::Ref(u) => (*u).size() + 4,
         }
     }
 }

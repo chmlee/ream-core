@@ -1,5 +1,4 @@
 # Country
-- name: USA
 
 ## State
 - name: New York
