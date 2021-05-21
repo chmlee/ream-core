@@ -254,6 +254,7 @@ pub enum ReferenceErrorType {
     EntryClassNotFound,
     VariableKeyNotFound,
     IncompatibleTypes,
+    DuplicateKeys,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

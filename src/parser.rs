@@ -20,10 +20,6 @@ impl<'source> Parser<'source> {
         }
     }
 
-    pub fn get_current_class(&self) -> String {
-        self.current_class.clone()
-    }
-
     pub fn parse_header(&mut self) -> Result<usize, ReamError> {
         let level = match self.scanner.take_token()? {
             Some(Token(TokenType::Header(n), _, _)) => n,
@@ -43,19 +39,27 @@ impl<'source> Parser<'source> {
     }
 
     pub fn parse_entry(&mut self) -> Result<Option<Entry>, ReamError> {
+
+        // entry level
         let level = self.parse_header()?;
-        // println!("parsing entry level {}", &level);
         self.current_level = level;
 
+        // entry class
         let class = self.parse_identifier()?;
         self.current_class = class.clone();
 
+        // init entry
         let mut entry = Entry::new(class, level);
+
+        // init history
+        let new_inner: HashMap<String, ReamValue> = HashMap::new();
+        self.history.insert(self.current_class.clone(), new_inner);
+        println!("init history:");
+        println!("{:#?}", &self.history);
 
         // loop for variables
         while let Some(Token(TokenType::Dash, _, _)) = self.scanner.peek_token()? {
             self.scanner.take_token()?;
-            // println!("{:?}", self.scanner.buffer);
             let result = self.parse_variable()?;
             match result {
                 Some(var) => {
@@ -66,8 +70,6 @@ impl<'source> Parser<'source> {
                 }
             }
         }
-
-        // println!("{:?}", self.scanner.buffer);
 
         // loop for subentries
         while let Some(Token(TokenType::Header(next_level), _, _)) = self.scanner.peek_token()? {
@@ -86,6 +88,9 @@ impl<'source> Parser<'source> {
             }
         }
 
+        println!("end of parsing entry");
+        println!("{:#?}", &self.history);
+
         Ok(Some(entry))
     }
 
@@ -93,7 +98,6 @@ impl<'source> Parser<'source> {
         let key = self.parse_identifier()?;
 
         let typ = self.parse_type()?;
-        // println!("{:?}", typ);
 
         self.parse_colon()?;
 
@@ -101,22 +105,23 @@ impl<'source> Parser<'source> {
 
         let ann = self.parse_annotation()?;
 
-        self.add_ref(key.clone(), val.clone());
+        self.add_ref(key.clone(), val.clone())?;
         let val_ann = ReamValueAnnotated::new(val, ann);
+
+        println!("add ref:");
+        println!("{:#?}", &self.history);
 
         Ok(Some(ReamVariable::new(key, val_ann)))
     }
 
     // TODO: use lifetime
-    pub fn add_ref(&mut self, key: String, val: ReamValue) {
+    pub fn add_ref(&mut self, key: String, val: ReamValue) -> Result<(), ReamError> {
+        let inner = self.history.get_mut(&self.current_class).unwrap();
 
-        if !self.history.contains_key(&self.current_class) {
-            let mut new_inner: HashMap<String, ReamValue> = HashMap::new();
-            new_inner.insert(key, val);
-            self.history.insert(self.current_class.clone(), new_inner);
-        } else {
-            let inner = self.history.get_mut(&self.current_class).unwrap();
-            inner.insert(key, val);
+        // check duplicate keys
+        match inner.insert(key, val) {
+            None => Ok(()),
+            Some(_) => Err(ReamError::ReferenceError(ReferenceErrorType::DuplicateKeys)),
         }
     }
 
@@ -145,7 +150,7 @@ impl<'source> Parser<'source> {
                         },
                         Some(s) => {
                             println!("{:?}, {:?}", s, typ);
-                            s.is_variant(typ)?;
+                            s.is_variant(typ)?; // TODO: type checking does not work
                             Ok((*s).clone())
                         },
                     }
