@@ -290,7 +290,8 @@ impl<'source> Scanner<'source> {
             "num" => ValueType::Num,
             "bool" => ValueType::Bool,
             "list" => ValueType::List(Box::new(ValueType::Unknown)),
-            "ref" => ValueType::Ref(Box::new(ValueType::Unknown)),
+            // "ref" => ValueType::Ref(Box::new(ValueType::Unknown)),
+            "ref" => ValueType::Ref,
             _ => return Err(ReamError::TypeError(TypeErrorType::UnknownType)),
         };
 
@@ -305,13 +306,14 @@ impl<'source> Scanner<'source> {
             ValueType::List(_) => {
                 ValueType::List(Box::new(new_typ))
             },
-            ValueType::Ref(t) => {
-                match *t {
-                    ValueType::List(_) => ValueType::Ref(Box::new(ValueType::List(Box::new(new_typ)))),
-                    _ => ValueType::Ref(Box::new(new_typ)),
+            // ValueType::Ref(t) => {
+            //     match *t {
+            //         ValueType::List(_) => ValueType::Ref(Box::new(ValueType::List(Box::new(new_typ)))),
+            //         _ => ValueType::Ref(Box::new(new_typ)),
 
-                }
-            },
+            //     }
+            // },
+            ValueType::Ref => ValueType::Ref,
             _ => {
                 return Err(ReamError::TypeError(TypeErrorType::UnknownType));
             },

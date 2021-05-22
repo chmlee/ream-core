@@ -1,15 +1,11 @@
 # LevelOne
-- list:
-  * 1
-  * 2
-  * 3
-- key: value
+- key: 1
 
 ## LevelTwo
-- k: v2
+- key (ref): LevelOne$key
 
 ### LevelThree
-- k: v2
+- key: 3.1
 
-## LevelTwo
-- k: v1
+### LevelThree
+- key: 3.2

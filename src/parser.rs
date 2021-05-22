@@ -10,7 +10,8 @@ pub struct Parser<'source> {
     pub current_level: usize,
     pub class_history: Vec<String>,
     pub schemas: HashMap<String, EntrySchema>,
-    // pub history: BTreeMap<String, HashMap<String, ReamValue>>,
+
+    upstream: HashMap<String, VariableMap>,
 }
 
 #[derive(Debug, Clone)]
@@ -37,7 +38,8 @@ impl<'source> Parser<'source> {
             current_level: 0,
             class_history: Vec::new(),
             schemas: HashMap::new(),
-            // history: BTreeMap::new(),
+
+            upstream: HashMap::new(),
         }
     }
 
@@ -64,6 +66,13 @@ impl<'source> Parser<'source> {
         self.class_history.pop();
     }
 
+    pub fn current_class(&self) -> &String {
+        match self.class_history.last() {
+            Some(c) => c,
+            None => unreachable!(),
+        }
+    }
+
     pub fn parse_header(&mut self) -> Result<usize, ReamError> {
         let level = match self.scanner.take_token()? {
             Some(Token(TokenType::Header(n), _, _)) => n,
@@ -84,6 +93,9 @@ impl<'source> Parser<'source> {
 
     pub fn parse_entry(&mut self) -> Result<Option<Entry>, ReamError> {
 
+        println!("{:#?}", &self.upstream);
+        println!("---");
+
         // find entry level
         let level = self.parse_header()?;
         self.current_level = level;
@@ -95,12 +107,6 @@ impl<'source> Parser<'source> {
         // init entry
         let mut entry = Entry::new(class, level);
 
-        // init history
-        // let new_inner: HashMap<String, ReamValue> = HashMap::new();
-        // self.history.insert(self.current_class.clone(), new_inner);
-        // println!("init history:");
-        // println!("{:#?}", &self.history);
-
         // loop for variables
         while let Some(Token(TokenType::Dash, _, _)) = self.scanner.peek_token()? {
             self.scanner.take_token()?; // consume Dash
@@ -111,6 +117,9 @@ impl<'source> Parser<'source> {
 
         // check schema
         let mut entry = self.check_schema(entry)?;
+
+        // update upstream
+        self.upstream.insert(entry.class(), entry.variable_map());
 
         // loop for subentries
         while let Some(Token(TokenType::Header(next_level), _, _)) = self.scanner.peek_token()? {
@@ -130,14 +139,19 @@ impl<'source> Parser<'source> {
         }
 
         // cleanup
-        self.pop_class(); // pop current class
+
+        // pop current class
+        self.pop_class();
+
+        // remove current entry as upstream
+        self.upstream.remove(&entry.class());
 
         Ok(Some(entry))
     }
 
     pub fn check_schema(&mut self, entry: Entry) -> Result<Entry, ReamError> {
         // if schema is not yet defined, init
-        if self.schemas.contains_key(entry.class()) {
+        if self.schemas.contains_key(&entry.class()) {
             self.check_schema_inner(entry)
         } else {
             self.init_schema(entry)
@@ -176,63 +190,18 @@ impl<'source> Parser<'source> {
         Ok((key, value))
     }
 
-    // TODO: use lifetime
-    // pub fn add_ref(&mut self, key: String, val: ReamValue) -> Result<(), ReamError> {
-    //     let inner = self.history.get_mut(&self.current_class).unwrap();
-
-    //     // check duplicate keys
-    //     match inner.insert(key, val) {
-    //         None => Ok(()),
-    //         Some(_) => Err(ReamError::ReferenceError(ReferenceErrorType::DuplicateKeys)),
-    //     }
-    // }
-
-    // pub fn get_ref(&mut self, tok: Option<Token>, typ: ValueType) -> Result<ReamValue, ReamError> {
-    //     let (s, c, r) = match tok {
-    //         Some(Token(TokenType::Value(s), c, r)) => {
-    //             (s, c, r)
-    //         },
-    //         _ => unreachable!(),
-    //     };
-
-    //     // split class and key names by `$`
-    //     let v: Vec<&str> = s
-    //         .split('$')
-    //         .collect();
-
-    //     if let [class, key] = &v[..] {
-    //         match self.history.get(*class) {
-    //             None => {
-    //                 return Err(ReamError::ReferenceError(ReferenceErrorType::EntryClassNotFound));
-    //             },
-    //             Some(inner) => {
-    //                 match inner.get(*key) {
-    //                     None => {
-    //                         return Err(ReamError::ReferenceError(ReferenceErrorType::VariableKeyNotFound));
-    //                     },
-    //                     Some(s) => {
-    //                         // println!("{:?}, {:?}", s, typ);
-    //                         s.is_variant(typ)?; // TODO: type checking does not work
-    //                         Ok((*s).clone())
-    //                     },
-    //                 }
-    //             }
-    //         }
-    //     } else {
-    //        return Err(ReamError::ReferenceError(ReferenceErrorType::InvalidReference));
-    //     }
-    // }
-
     pub fn parse_value(&mut self, typ: ValueType) -> Result<Value, ReamError> {
         let tok_value = self.scanner.take_token()?;
-        let (value_base, typ) = match typ {
-            _ => {
-                match tok_value {
-                    Some(Token(TokenType::Value(v), _, _)) => ValueBase::new(v, typ)?,
-                    Some(Token(TokenType::Star, _, _)) => self.parse_list_items(typ)?,
-                    _ => return Err(ReamError::ParseError(ParseErrorType::MissingValue)),
+        let (value_base, typ) = match tok_value {
+            Some(Token(TokenType::Value(v), _, _)) => {
+                match typ {
+                    // if value is a reference, get the reference
+                    ValueType::Ref => self.get_ref(v)?,
+                    _ => ValueBase::new(v, typ)?
                 }
-            }
+            },
+            Some(Token(TokenType::Star, _, _)) => self.parse_list_items(typ)?,
+            _ => return Err(ReamError::ParseError(ParseErrorType::MissingValue)),
         };
 
         let annotation = self.parse_annotation()?;
@@ -240,6 +209,32 @@ impl<'source> Parser<'source> {
         let value = Value::new(value_base, annotation, typ);
 
         Ok(value)
+    }
+
+    pub fn get_ref(&self, value: String) -> Result<(ValueBase, ValueType), ReamError> {
+        let v: Vec<&str> = value
+            .split('$')
+            .collect();
+
+        if let [class, key] = &v[..] {
+            match self.upstream.get(*class) {
+                Some(variable_map) => {
+                    match variable_map.get(*key) {
+                        Some(s) => {
+                            Ok(s.get_base_and_typ())
+                        },
+                        None => {
+                            return Err(ReamError::ReferenceError(ReferenceErrorType::VariableKeyNotFound));
+                        },
+                    }
+                },
+                None => {
+                    return Err(ReamError::ReferenceError(ReferenceErrorType::EntryClassNotFound));
+                },
+            }
+        } else {
+           return Err(ReamError::ReferenceError(ReferenceErrorType::InvalidReference));
+        }
     }
 
     pub fn parse_list_items(&mut self, typ: ValueType) -> Result<(ValueBase, ValueType), ReamError> {

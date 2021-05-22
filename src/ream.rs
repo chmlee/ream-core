@@ -5,6 +5,8 @@ use std::fmt;
 
 use serde::{Deserialize, Serialize};
 
+pub type VariableMap = HashMap<String, Value>;
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Entry {
     class: String,
@@ -12,7 +14,7 @@ pub struct Entry {
     level: usize,
 
     keys: Vec<String>,
-    variables: HashMap<String, Value>,
+    variables: VariableMap,
     subentries: Vec<Entry>,
 }
 
@@ -30,7 +32,8 @@ pub enum ValueType {
     Bool,
     Unknown,
     List(Box<ValueType>),
-    Ref(Box<ValueType>),
+    // Ref(Box<ValueType>),
+    Ref,
 }
 
 #[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
@@ -84,12 +87,16 @@ impl Entry {
         output
     }
 
-    pub fn class(&self) -> &String {
-        &self.class
+    pub fn class(&self) -> String {
+        self.class.clone() // TODO: clone!
     }
 
     pub fn keys(&self) -> Vec<String> {
         self.keys.clone()
+    }
+
+    pub fn variable_map(&self) -> VariableMap {
+        self.variables.clone() // TODO: clone!
     }
 
     pub fn insert_variable(&mut self, key: String, value: Value) -> Result<(), ReamError> {
@@ -170,6 +177,10 @@ impl Value {
     pub fn get_value(&self) -> String {
         self.value.to_string()
     }
+
+    pub fn get_base_and_typ(&self) -> (ValueBase, ValueType) {
+        (self.value.clone(), self.typ.clone()) // TODO: clone!
+    }
 }
 
 impl ValueType {
@@ -180,7 +191,7 @@ impl ValueType {
             Self::Num => 3,
             Self::Bool => 4,
             Self::List(u) => (*u).size() + 5,
-            Self::Ref(u) => (*u).size() + 4,
+            Self::Ref => 3,
         }
     }
 }
@@ -220,7 +231,7 @@ impl ValueBase {
 
             ValueType::Str => return Ok((Self::Str(val), typ)),
 
-            // ValueType::List(t) => return Self::new(val, *t.clone()),
+            ValueType::List(t) => unreachable!(),
 
             _ => unreachable!(),
         }
