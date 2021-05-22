@@ -1,6 +1,7 @@
 mod parser;
 mod ream;
 mod scanner;
+mod error;
 
 use crate::parser::*;
 use crate::scanner::*;

@@ -1,14 +1,12 @@
 # LevelOne
-- key: 1
+- list:
+  * 1
+  * 2
+  * 3
+- key: value
 
 ## LevelTwo
-- key: 3
-
-### LevelThree
-- key: a
+- k: v2
 
 ## LevelTwo
-- key: 2-2
-
-### LevelThree
-- key: b
+- k: v1

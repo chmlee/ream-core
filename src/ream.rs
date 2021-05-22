@@ -1,3 +1,8 @@
+use crate::error::*;
+
+use std::collections::HashMap;
+use std::fmt;
+
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -5,9 +10,43 @@ pub struct Entry {
     class: String,
     level: usize,
 
-    variables: Vec<ReamVariable>,
+    keys: Vec<String>,
+    variables: HashMap<String, Value>,
     subentries: Vec<Entry>,
 }
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Value {
+    value: ValueBase,
+    annotation: String,
+    typ: ValueType,
+}
+
+#[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
+pub enum ValueType {
+    Str,
+    Num,
+    Bool,
+    Unknown,
+    List(Box<ValueType>),
+    Ref(Box<ValueType>),
+}
+
+#[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
+pub enum ValueBase {
+    Str(String),
+    Num(String),
+    Bool(String),
+    Unknown(String),
+    List(Box<List>),
+}
+
+#[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
+pub struct List {
+    item_type: ValueType,
+    items: Vec<Value>,
+}
+
 
 impl Entry {
     pub fn new(class: String, level: usize) -> Self {
@@ -15,17 +54,14 @@ impl Entry {
             class,
             level,
 
-            variables: vec![],
+            keys: Vec::new(),
+            variables: HashMap::new(),
             subentries: vec![],
         }
     }
 
-    pub fn get_class(&self) -> &String {
-        &self.class
-    }
-
-    pub fn push_variable(&mut self, variable: ReamVariable) {
-        self.variables.push(variable);
+    pub fn push_key(&mut self, key: String) {
+        self.keys.push(key);
     }
 
     pub fn push_subentry(&mut self, subentry: Entry) {
@@ -33,14 +69,28 @@ impl Entry {
     }
 
     pub fn get_variable_values(&self) -> Vec<String> {
-        let output: Vec<String> = self
-            .variables
-            .to_owned()
-            .into_iter()
-            .map(|item| item.get_value())
-            .collect();
-
+        let mut output: Vec<String> = Vec::new();
+        for key in self.keys.clone() { // TODO: clone!
+            let item = self.value(&key);
+            let item_string = item.to_string();
+            output.push(item_string);
+        }
         output
+    }
+
+    pub fn insert_variable(&mut self, key: String, value: Value) -> Result<(), ReamError> {
+        // also check for duplicate keys
+        match self.variables.insert(key, value) {
+            None => Ok(()),
+            Some(_) => Err(ReamError::DuplicateKeys), // TODO: better error classification
+        }
+    }
+
+    pub fn value(&self, key: &String) -> Value {
+        match self.variables.get(key) {
+            Some(value) => value.clone(), // TODO: clone!
+            None => unreachable!(), // TODO: un!
+        }
     }
 
     // TODO: must exist a better way to write this >:(
@@ -89,124 +139,23 @@ impl Entry {
         let raw = serde_json::to_string(&self).unwrap();
         Ok(raw)
     }
+
+
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct ReamVariable {
-    key: String,
-    value: ReamValueAnnotated,
-}
 
-impl ReamVariable {
-    pub fn new(key: String, value: ReamValueAnnotated) -> Self {
-        Self { key, value }
+impl Value {
+    pub fn new(value: ValueBase, annotation: String, typ: ValueType) -> Self {
+        Self { value, annotation, typ }
+    }
+
+    pub fn typ(&self) -> &ValueType {
+        &self.typ
     }
 
     pub fn get_value(&self) -> String {
-        self.value.get_value()
+        self.value.to_string()
     }
-}
-#[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
-pub struct ReamValueAnnotated {
-    content: ReamValue,
-    annotation: String,
-}
-
-impl ReamValueAnnotated {
-    pub fn get_value(&self) -> String {
-        self.content.get_value()
-    }
-
-    pub fn new(val: ReamValue, ann: String) -> Self {
-        Self {
-            content: val,
-            annotation: ann,
-        }
-    }
-}
-
-#[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
-pub enum ReamValue {
-    Str(String),
-    Num(String),
-    Bool(String),
-    Unknown(String),
-    List(Vec<ReamValueAnnotated>),
-}
-
-impl ReamValue {
-    pub fn get_value(&self) -> String {
-        match self {
-            Self::Str(s) => s.to_string(),
-            Self::Num(s) => s.to_string(),
-            Self::Bool(s) => s.to_string(),
-            Self::List(v) => {
-                let items: Vec<String> = v.iter().map(|val_ann| val_ann.get_value()).collect();
-                items.join(";")
-            }
-            _ => unreachable!(),
-            // Unknown(String),
-        }
-    }
-
-    pub fn match_variant(&self, new_item: &Self) -> Result<(), ReamError> {
-        if std::mem::discriminant(self) == std::mem::discriminant(&new_item) {
-            Ok(())
-        } else {
-            Err(ReamError::TypeError(TypeErrorType::HeterogeneousList))
-        }
-    }
-
-    pub fn is_variant(&self, typ: ValueType) -> Result<(), ReamError> {
-        match std::mem::discriminant(self) {
-            typ => Ok(()),
-            _ => Err(ReamError::ReferenceError(ReferenceErrorType::IncompatibleTypes)),
-        }
-    }
-
-    pub fn new(val: String, typ: ValueType) -> Result<Self, ReamError> {
-        match typ {
-            // Value type is not specified.
-            // Check for `bool` and `num`.
-            // If netiher, return `str`.
-            ValueType::Unknown => {
-                if is_bool(&val) {
-                    Ok(ReamValue::Bool(val))
-                } else if is_num(&val) {
-                    Ok(ReamValue::Num(val))
-                } else {
-                    Ok(ReamValue::Str(val))
-                }
-            }
-            // Value type is specified.
-            // Validate value type.
-            ValueType::Num => {
-                if !is_num(&val) {
-                    return Err(ReamError::TypeError(TypeErrorType::InvalidNumber));
-                }
-                return Ok(ReamValue::Num(val));
-            }
-            ValueType::Bool => {
-                if !is_bool(&val) {
-                    return Err(ReamError::TypeError(TypeErrorType::InvalidBoolean));
-                }
-                return Ok(ReamValue::Bool(val));
-            }
-            ValueType::Str => return Ok(ReamValue::Str(val)),
-            ValueType::List(t) => return Self::new(val, *t.clone()),
-            _ => unreachable!(),
-        }
-    }
-}
-
-#[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
-pub enum ValueType {
-    Str,
-    Num,
-    Bool,
-    Unknown,
-    List(Box<ValueType>),
-    Ref(Box<ValueType>),
 }
 
 impl ValueType {
@@ -221,6 +170,98 @@ impl ValueType {
         }
     }
 }
+
+impl ValueBase {
+    pub fn new(val: String, typ: ValueType) -> Result<(Self, ValueType), ReamError> {
+        match typ {
+
+            // Value type is not specified.
+            // Check for `bool` and `num`.
+            // If netiher, return `str`.
+            ValueType::Unknown => {
+                if is_bool(&val) {
+                    Ok((Self::Bool(val), ValueType::Bool))
+                } else if is_num(&val) {
+                    Ok((Self::Num(val), ValueType::Num))
+                } else {
+                    Ok((Self::Str(val), ValueType::Str))
+                }
+            }
+
+            // Value type is specified.
+            // Validate value type.
+            ValueType::Num => {
+                if !is_num(&val) {
+                    return Err(ReamError::TypeError(TypeErrorType::InvalidNumber));
+                }
+                return Ok((Self::Num(val), typ));
+            }
+
+            ValueType::Bool => {
+                if !is_bool(&val) {
+                    return Err(ReamError::TypeError(TypeErrorType::InvalidBoolean));
+                }
+                return Ok((Self::Bool(val), typ));
+            }
+
+            ValueType::Str => return Ok((Self::Str(val), typ)),
+
+            // ValueType::List(t) => return Self::new(val, *t.clone()),
+
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn new_item(list: List) -> Self {
+        ValueBase::List(Box::new(list))
+    }
+
+}
+
+impl List {
+    pub fn new(typ: ValueType, first_item: Value) -> Self {
+        Self {
+            item_type: typ,
+            items: vec![first_item],
+        }
+    }
+
+    pub fn push_item(&mut self, new_item: Value) {
+        self.items.push(new_item);
+    }
+
+    pub fn item_type(&self) -> &ValueType {
+        &self.item_type
+    }
+
+    pub fn items_as_string(&self) -> String {
+        self.items.iter()
+            .map(|item| item.get_value())
+            .collect::<Vec<String>>()
+            .join(";")
+    }
+}
+
+impl fmt::Display for ValueBase {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let string = match self { // TODO: clone!
+            Self::Str(s) => s.clone(),
+            Self::Num(s) => s.clone(),
+            Self::Bool(s) => s.clone(),
+            Self::List(list) => list.items_as_string(),
+            _ => "unknown".to_string(),
+        };
+        write!(f, "{}", string)
+    }
+}
+
+impl fmt::Display for Value {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let s = self.value.clone();
+        write!(f, "{}", s)
+    }
+}
+
 
 fn is_bool(value: &str) -> bool {
     match value {
@@ -237,55 +278,4 @@ fn is_num(value: &str) -> bool {
         Ok(_) => true,
         _ => false,
     }
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub enum ReamError {
-    ScanError(ScanErrorType),
-    ParseError(ParseErrorType),
-    TypeError(TypeErrorType),
-    ReferenceError(ReferenceErrorType)
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub enum ReferenceErrorType {
-    ReferenceNotFound,
-    InvalidReference,
-    EntryClassNotFound,
-    VariableKeyNotFound,
-    IncompatibleTypes,
-    DuplicateKeys,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub enum TypeErrorType {
-    UnknownType,
-    InvalidNumber,
-    InvalidBoolean,
-    HeterogeneousList,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub enum ParseErrorType {
-    MissingHeaderLevel,
-    MissingIdentifier,
-    MissingVariable,
-    MissingSubentry,
-    MissingValue,
-    MissingToken,
-    MissingColon,
-    WrongHeaderLevel,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub enum ScanErrorType {
-    InvalidToken,
-    // ToFewSpaces,
-    MissingValue,
-    MissingKey,
-    MissingClass,
-    MissingEOL,
-    MissingColon,
-    InvalidType,
-    WrongHeaderLevel,
 }

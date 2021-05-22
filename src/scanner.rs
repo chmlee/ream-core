@@ -1,7 +1,9 @@
+use crate::error::*;
+use crate::ream::*;
+
 use std::collections::VecDeque;
 use std::{fmt, str};
 
-use crate::ream::*;
 
 #[derive(PartialEq, Eq, Clone)]
 pub struct Token(pub TokenType, pub Marker, pub Marker);

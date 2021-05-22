@@ -1,5 +1,7 @@
 use crate::ream::*;
 use crate::scanner::*;
+use crate::error::*;
+
 use std::collections::{BTreeMap, HashMap};
 
 #[derive(Debug)]
@@ -7,7 +9,7 @@ pub struct Parser<'source> {
     pub scanner: Scanner<'source>,
     pub current_level: usize,
     pub current_class: String,
-    pub history: BTreeMap<String, HashMap<String, ReamValue>>,
+    // pub history: BTreeMap<String, HashMap<String, ReamValue>>,
 }
 
 impl<'source> Parser<'source> {
@@ -16,7 +18,7 @@ impl<'source> Parser<'source> {
             scanner: Scanner::new(source),
             current_level: 0,
             current_class: String::new(),
-            history: BTreeMap::new(),
+            // history: BTreeMap::new(),
         }
     }
 
@@ -52,23 +54,17 @@ impl<'source> Parser<'source> {
         let mut entry = Entry::new(class, level);
 
         // init history
-        let new_inner: HashMap<String, ReamValue> = HashMap::new();
-        self.history.insert(self.current_class.clone(), new_inner);
-        println!("init history:");
-        println!("{:#?}", &self.history);
+        // let new_inner: HashMap<String, ReamValue> = HashMap::new();
+        // self.history.insert(self.current_class.clone(), new_inner);
+        // println!("init history:");
+        // println!("{:#?}", &self.history);
 
         // loop for variables
         while let Some(Token(TokenType::Dash, _, _)) = self.scanner.peek_token()? {
-            self.scanner.take_token()?;
-            let result = self.parse_variable()?;
-            match result {
-                Some(var) => {
-                    entry.push_variable(var);
-                }
-                None => {
-                    return Err(ReamError::ParseError(ParseErrorType::MissingVariable));
-                }
-            }
+            self.scanner.take_token()?; // consume Dash
+            let (key, val) = self.parse_variable()?;
+            entry.push_key(key.clone());
+            entry.insert_variable(key, val)?;
         }
 
         // loop for subentries
@@ -88,96 +84,90 @@ impl<'source> Parser<'source> {
             }
         }
 
-        println!("end of parsing entry");
-        println!("{:#?}", &self.history);
+        // println!("end of parsing entry");
+        // println!("{:#?}", &self.history);
 
         Ok(Some(entry))
     }
 
-    pub fn parse_variable(&mut self) -> Result<Option<ReamVariable>, ReamError> {
-        let key = self.parse_identifier()?;
+    pub fn parse_variable(&mut self) -> Result<(String, Value), ReamError> {
 
-        let typ = self.parse_type()?;
+        let key   = self.parse_identifier()?;
+        let typ   = self.parse_type()?;
+                    self.parse_colon()?;
+        let value = self.parse_value(typ)?;
 
-        self.parse_colon()?;
-
-        let val = self.parse_value(typ)?;
-
-        let ann = self.parse_annotation()?;
-
-        self.add_ref(key.clone(), val.clone())?;
-        let val_ann = ReamValueAnnotated::new(val, ann);
-
-        println!("add ref:");
-        println!("{:#?}", &self.history);
-
-        Ok(Some(ReamVariable::new(key, val_ann)))
+        Ok((key, value))
     }
 
     // TODO: use lifetime
-    pub fn add_ref(&mut self, key: String, val: ReamValue) -> Result<(), ReamError> {
-        let inner = self.history.get_mut(&self.current_class).unwrap();
+    // pub fn add_ref(&mut self, key: String, val: ReamValue) -> Result<(), ReamError> {
+    //     let inner = self.history.get_mut(&self.current_class).unwrap();
 
-        // check duplicate keys
-        match inner.insert(key, val) {
-            None => Ok(()),
-            Some(_) => Err(ReamError::ReferenceError(ReferenceErrorType::DuplicateKeys)),
-        }
-    }
+    //     // check duplicate keys
+    //     match inner.insert(key, val) {
+    //         None => Ok(()),
+    //         Some(_) => Err(ReamError::ReferenceError(ReferenceErrorType::DuplicateKeys)),
+    //     }
+    // }
 
-    pub fn get_ref(&mut self, tok: Option<Token>, typ: ValueType) -> Result<ReamValue, ReamError> {
-        let (s, c, r) = match tok {
-            Some(Token(TokenType::Value(s), c, r)) => {
-                (s, c, r)
-            },
-            _ => unreachable!(),
-        };
+    // pub fn get_ref(&mut self, tok: Option<Token>, typ: ValueType) -> Result<ReamValue, ReamError> {
+    //     let (s, c, r) = match tok {
+    //         Some(Token(TokenType::Value(s), c, r)) => {
+    //             (s, c, r)
+    //         },
+    //         _ => unreachable!(),
+    //     };
 
-        // split class and key names by `$`
-        let v: Vec<&str> = s
-            .split('$')
-            .collect();
+    //     // split class and key names by `$`
+    //     let v: Vec<&str> = s
+    //         .split('$')
+    //         .collect();
 
-        if let [class, key] = &v[..] {
-            match self.history.get(*class) {
-                None => {
-                    return Err(ReamError::ReferenceError(ReferenceErrorType::EntryClassNotFound));
-                },
-                Some(inner) => {
-                    match inner.get(*key) {
-                        None => {
-                            return Err(ReamError::ReferenceError(ReferenceErrorType::VariableKeyNotFound));
-                        },
-                        Some(s) => {
-                            println!("{:?}, {:?}", s, typ);
-                            s.is_variant(typ)?; // TODO: type checking does not work
-                            Ok((*s).clone())
-                        },
-                    }
-                }
-            }
-        } else {
-           return Err(ReamError::ReferenceError(ReferenceErrorType::InvalidReference));
-        }
-    }
+    //     if let [class, key] = &v[..] {
+    //         match self.history.get(*class) {
+    //             None => {
+    //                 return Err(ReamError::ReferenceError(ReferenceErrorType::EntryClassNotFound));
+    //             },
+    //             Some(inner) => {
+    //                 match inner.get(*key) {
+    //                     None => {
+    //                         return Err(ReamError::ReferenceError(ReferenceErrorType::VariableKeyNotFound));
+    //                     },
+    //                     Some(s) => {
+    //                         // println!("{:?}, {:?}", s, typ);
+    //                         s.is_variant(typ)?; // TODO: type checking does not work
+    //                         Ok((*s).clone())
+    //                     },
+    //                 }
+    //             }
+    //         }
+    //     } else {
+    //        return Err(ReamError::ReferenceError(ReferenceErrorType::InvalidReference));
+    //     }
+    // }
 
-    pub fn parse_value(&mut self, typ: ValueType) -> Result<ReamValue, ReamError> {
-        let val = self.scanner.take_token()?;
-        match typ {
-            ValueType::Ref(t) => {
-                self.get_ref(val, *t)
-            },
+    pub fn parse_value(&mut self, typ: ValueType) -> Result<Value, ReamError> {
+        let tok_value = self.scanner.take_token()?;
+        let (value_base, typ) = match typ {
             _ => {
-                match val {
-                    Some(Token(TokenType::Value(v), _, _)) => ReamValue::new(v, typ),
-                    Some(Token(TokenType::Star, _, _)) => self.parse_list_items(typ),
+                match tok_value {
+                    Some(Token(TokenType::Value(v), _, _)) => ValueBase::new(v, typ)?,
+                    Some(Token(TokenType::Star, _, _)) => self.parse_list_items(typ)?,
                     _ => return Err(ReamError::ParseError(ParseErrorType::MissingValue)),
                 }
             }
-        }
+        };
+
+        let annotation = self.parse_annotation()?;
+
+        let value = Value::new(value_base, annotation, typ);
+
+        Ok(value)
     }
 
-    pub fn parse_list_items(&mut self, typ: ValueType) -> Result<ReamValue, ReamError> {
+    pub fn parse_list_items(&mut self, typ: ValueType) -> Result<(ValueBase, ValueType), ReamError> {
+
         // unwrap list type
         let typ = match typ {
             ValueType::List(t) => *t,
@@ -186,28 +176,32 @@ impl<'source> Parser<'source> {
         };
 
         // parse first item
-        let first_val = self.parse_value(typ.clone())?;
-        let ann = self.parse_annotation()?;
-        let val_ann = ReamValueAnnotated::new(first_val.clone(), ann);
-        let mut list = vec![val_ann.clone()];
+        let first_item = self.parse_value(typ.clone())?;
+
+        // init list
+        let item_typ = first_item.typ().clone(); // get the updated type
+        let mut list = List::new(item_typ.clone(), first_item);
 
         // loop through list items
         loop {
             match self.scanner.peek_token()? {
                 Some(Token(TokenType::Star, _, _)) => {
                     self.scanner.take_token()?; // consume star
-
-                    let new_val = self.parse_value(typ.clone())?;
-                    first_val.match_variant(&new_val)?; // check homogeneity
-                    let ann = self.parse_annotation()?;
-                    let new_val_ann = ReamValueAnnotated::new(new_val, ann);
-                    list.push(new_val_ann);
+                    let new_item = self.parse_value(typ.clone())?;
+                    // check new item type
+                    if new_item.typ() == list.item_type() {
+                        list.push_item(new_item);
+                    } else {
+                        return Err(ReamError::TypeError(TypeErrorType::HeterogeneousList))
+                    }
                 }
                 _ => break,
             }
         }
 
-        Ok(ReamValue::List(list))
+        let value_base = ValueBase::new_item(list);
+        let typ = ValueType::List(Box::new(item_typ.clone()));
+        Ok((value_base, typ))
     }
 
     pub fn parse_annotation(&mut self) -> Result<String, ReamError> {
@@ -262,7 +256,6 @@ mod tests {
         let mut parser = Parser::new(&text);
         let entry_test = parser.parse_entry().unwrap().unwrap();
         let entry_ans = Entry::new("Title".to_string(), 1);
-        println!("{:?}", entry_test);
         assert_eq!(entry_test, entry_ans);
     }
 
