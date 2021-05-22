@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Entry {
     class: String,
+    // parent_class: String,
     level: usize,
 
     keys: Vec<String>,
@@ -49,9 +50,10 @@ pub struct List {
 
 
 impl Entry {
-    pub fn new(class: String, level: usize) -> Self {
+    pub fn new(class: String, level: usize, /*parent_class: String*/) -> Self {
         Entry {
             class,
+            // parent_class,
             level,
 
             keys: Vec::new(),
@@ -68,6 +70,10 @@ impl Entry {
         self.subentries.push(subentry);
     }
 
+    // pub fn parent_class(&self) -> &String {
+    //     &self.parent_class
+    // }
+
     pub fn get_variable_values(&self) -> Vec<String> {
         let mut output: Vec<String> = Vec::new();
         for key in self.keys.clone() { // TODO: clone!
@@ -76,6 +82,14 @@ impl Entry {
             output.push(item_string);
         }
         output
+    }
+
+    pub fn class(&self) -> &String {
+        &self.class
+    }
+
+    pub fn keys(&self) -> Vec<String> {
+        self.keys.clone()
     }
 
     pub fn insert_variable(&mut self, key: String, value: Value) -> Result<(), ReamError> {

@@ -6,7 +6,15 @@ pub enum ReamError {
     ParseError(ParseErrorType),
     TypeError(TypeErrorType),
     ReferenceError(ReferenceErrorType),
+    SchemaError(SchemaErrorType),
     DuplicateKeys, // TODO: better error classification
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub enum SchemaErrorType {
+    IncorrectParentClass,
+    IncorrectKeys,
+    IncorrectClass,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
