@@ -2,14 +2,32 @@ use crate::ream::*;
 use crate::scanner::*;
 use crate::error::*;
 
-use std::collections::{BTreeMap, HashMap};
+use std::collections::{BTreeMap, HashMap, VecDeque};
 
 #[derive(Debug)]
 pub struct Parser<'source> {
     pub scanner: Scanner<'source>,
     pub current_level: usize,
-    pub current_class: String,
+    pub class_history: Vec<String>,
+    pub schemas: HashMap<String, EntrySchema>,
     // pub history: BTreeMap<String, HashMap<String, ReamValue>>,
+}
+
+#[derive(Debug, Clone)]
+pub struct EntrySchema {
+    keys: Vec<String>,
+}
+
+impl EntrySchema {
+    pub fn new(keys: Vec<String>) -> Self {
+        Self {
+            keys,
+        }
+    }
+
+    pub fn keys(&self) -> Vec<String> {
+        self.keys.clone()
+    }
 }
 
 impl<'source> Parser<'source> {
@@ -17,9 +35,33 @@ impl<'source> Parser<'source> {
         Parser {
             scanner: Scanner::new(source),
             current_level: 0,
-            current_class: String::new(),
+            class_history: Vec::new(),
+            schemas: HashMap::new(),
             // history: BTreeMap::new(),
         }
+    }
+
+    pub fn schema(&self, class: String) -> Result<EntrySchema, ReamError> {
+        match self.schemas.get(&class) {
+            Some(v) => Ok((*v).clone()), // TODO: clone!
+            None => Err(ReamError::SchemaError(SchemaErrorType::IncorrectClass)),
+        }
+    }
+
+    pub fn parent_class(&self) -> Option<String> {
+        let level = self.current_level;
+        match level {
+            1 => None, // ignore root node
+            _ => Some(self.class_history[level - 2].clone()), // TODO: clone!
+        }
+    }
+
+    pub fn push_class(&mut self, new_class: String) {
+        self.class_history.push(new_class);
+    }
+
+    pub fn pop_class(&mut self) {
+        self.class_history.pop();
     }
 
     pub fn parse_header(&mut self) -> Result<usize, ReamError> {
@@ -42,13 +84,13 @@ impl<'source> Parser<'source> {
 
     pub fn parse_entry(&mut self) -> Result<Option<Entry>, ReamError> {
 
-        // entry level
+        // find entry level
         let level = self.parse_header()?;
         self.current_level = level;
 
-        // entry class
+        // find entry class
         let class = self.parse_identifier()?;
-        self.current_class = class.clone();
+        self.push_class(class.clone()); // TODO: clone!
 
         // init entry
         let mut entry = Entry::new(class, level);
@@ -67,6 +109,9 @@ impl<'source> Parser<'source> {
             entry.insert_variable(key, val)?;
         }
 
+        // check schema
+        let mut entry = self.check_schema(entry)?;
+
         // loop for subentries
         while let Some(Token(TokenType::Header(next_level), _, _)) = self.scanner.peek_token()? {
             if next_level.to_owned() == self.current_level + 1 {
@@ -84,10 +129,41 @@ impl<'source> Parser<'source> {
             }
         }
 
-        // println!("end of parsing entry");
-        // println!("{:#?}", &self.history);
+        // cleanup
+        self.pop_class(); // pop current class
 
         Ok(Some(entry))
+    }
+
+    pub fn check_schema(&mut self, entry: Entry) -> Result<Entry, ReamError> {
+        // if schema is not yet defined, init
+        if self.schemas.contains_key(entry.class()) {
+            self.check_schema_inner(entry)
+        } else {
+            self.init_schema(entry)
+        }
+    }
+
+    pub fn init_schema(&mut self, entry: Entry) -> Result<Entry, ReamError> {
+        let entry_keys = entry.keys();
+        let entry_class = entry.class().clone();
+        let entry_schema = EntrySchema::new(entry_keys);
+        self.schemas.insert(entry_class, entry_schema); // TODO: clone!
+
+        Ok(entry)
+    }
+
+    pub fn check_schema_inner(&self, entry: Entry) -> Result<Entry, ReamError> {
+        let entry_keys = entry.keys();
+        let entry_class = entry.class().clone();
+        let schema = self.schema(entry_class)?;
+        let schema_keys = schema.keys();
+
+        if schema_keys == entry_keys {
+            Ok(entry)
+        } else {
+            Err(ReamError::SchemaError(SchemaErrorType::IncorrectKeys))
+        }
     }
 
     pub fn parse_variable(&mut self) -> Result<(String, Value), ReamError> {
