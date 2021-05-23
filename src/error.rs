@@ -15,6 +15,7 @@ pub enum SchemaErrorType {
     IncorrectParentClass,
     IncorrectKeys,
     IncorrectClass,
+    IncorrectSchema, // TODO: need to be more specific
 }
 
 #[derive(Debug, Serialize, Deserialize)]

@@ -10,12 +10,14 @@ pub type VariableMap = HashMap<String, Value>;
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Entry {
     class: String,
-    // parent_class: String,
     level: usize,
+    parent_class: Option<String>,
 
-    keys: Vec<String>,
     variables: VariableMap,
     subentries: Vec<Entry>,
+
+    keys: Vec<String>,
+    ref_keys: Vec<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -43,6 +45,7 @@ pub enum ValueBase {
     Bool(String),
     Unknown(String),
     List(Box<List>),
+    Ref(Option<String>),
 }
 
 #[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
@@ -51,18 +54,27 @@ pub struct List {
     items: Vec<Value>,
 }
 
-
 impl Entry {
-    pub fn new(class: String, level: usize, /*parent_class: String*/) -> Self {
+    pub fn new(class: String, level: usize, parent_class: Option<String>) -> Self {
         Entry {
             class,
-            // parent_class,
+            parent_class,
             level,
 
-            keys: Vec::new(),
             variables: HashMap::new(),
             subentries: vec![],
+
+            keys: Vec::new(),
+            ref_keys: Vec::new(),
         }
+    }
+
+    pub fn add_ref_key(&mut self, key: String) {
+        self.ref_keys.push(key);
+    }
+
+    pub fn get_schema(&self) -> EntrySchema {
+        EntrySchema::new(self.keys.clone(), self.parent_class.clone())
     }
 
     pub fn push_key(&mut self, key: String) {
@@ -73,13 +85,14 @@ impl Entry {
         self.subentries.push(subentry);
     }
 
-    // pub fn parent_class(&self) -> &String {
-    //     &self.parent_class
-    // }
+    pub fn get_parent_class(&self) -> Option<String> {
+        self.parent_class.clone() // TODO: clone!
+    }
 
     pub fn get_variable_values(&self) -> Vec<String> {
         let mut output: Vec<String> = Vec::new();
-        for key in self.keys.clone() { // TODO: clone!
+        for key in self.keys.clone() {
+            // TODO: clone!
             let item = self.value(&key);
             let item_string = item.to_string();
             output.push(item_string);
@@ -110,7 +123,7 @@ impl Entry {
     pub fn value(&self, key: &String) -> Value {
         match self.variables.get(key) {
             Some(value) => value.clone(), // TODO: clone!
-            None => unreachable!(), // TODO: un!
+            None => unreachable!(),       // TODO: un!
         }
     }
 
@@ -160,14 +173,15 @@ impl Entry {
         let raw = serde_json::to_string(&self).unwrap();
         Ok(raw)
     }
-
-
 }
-
 
 impl Value {
     pub fn new(value: ValueBase, annotation: String, typ: ValueType) -> Self {
-        Self { value, annotation, typ }
+        Self {
+            value,
+            annotation,
+            typ,
+        }
     }
 
     pub fn typ(&self) -> &ValueType {
@@ -199,7 +213,6 @@ impl ValueType {
 impl ValueBase {
     pub fn new(val: String, typ: ValueType) -> Result<(Self, ValueType), ReamError> {
         match typ {
-
             // Value type is not specified.
             // Check for `bool` and `num`.
             // If netiher, return `str`.
@@ -241,6 +254,10 @@ impl ValueBase {
         ValueBase::List(Box::new(list))
     }
 
+    pub fn new_ref(reference: Option<String>) -> Self {
+        Self::Ref(reference)
+    }
+
 }
 
 impl List {
@@ -260,7 +277,8 @@ impl List {
     }
 
     pub fn items_as_string(&self) -> String {
-        self.items.iter()
+        self.items
+            .iter()
             .map(|item| item.get_value())
             .collect::<Vec<String>>()
             .join(";")
@@ -269,7 +287,8 @@ impl List {
 
 impl fmt::Display for ValueBase {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let string = match self { // TODO: clone!
+        let string = match self {
+            // TODO: clone!
             Self::Str(s) => s.clone(),
             Self::Num(s) => s.clone(),
             Self::Bool(s) => s.clone(),
@@ -287,7 +306,6 @@ impl fmt::Display for Value {
     }
 }
 
-
 fn is_bool(value: &str) -> bool {
     match value {
         "TRUE" => true,
@@ -302,5 +320,25 @@ fn is_num(value: &str) -> bool {
     match value.parse::<f64>() {
         Ok(_) => true,
         _ => false,
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct EntrySchema {
+    keys: Vec<String>,
+    parent_class: Option<String>,
+}
+
+impl EntrySchema {
+    pub fn new(keys: Vec<String>, parent_class: Option<String>) -> Self {
+        Self { keys, parent_class }
+    }
+
+    pub fn keys(&self) -> Vec<String> {
+        self.keys.clone() // TODO: clone!
+    }
+
+    pub fn get_parent_class(&self) -> Option<String> {
+        self.parent_class.clone() // TODO: clone
     }
 }

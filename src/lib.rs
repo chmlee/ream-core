@@ -1,7 +1,7 @@
+pub mod error;
 pub mod parser;
 pub mod ream;
 pub mod scanner;
-pub mod error;
 
 pub use parser::*;
 pub use scanner::*;
