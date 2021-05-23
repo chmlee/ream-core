@@ -45,12 +45,12 @@ pub enum ValueBase {
     Bool(String),
     Unknown(String),
     List(Box<List>),
-    Ref(Option<String>),
+    Ref(String, String),
 }
 
 #[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
 pub struct List {
-    item_type: ValueType,
+    item_typ: ValueType,
     items: Vec<Value>,
 }
 
@@ -69,8 +69,47 @@ impl Entry {
         }
     }
 
-    pub fn add_ref_key(&mut self, key: String) {
-        self.ref_keys.push(key);
+    pub fn resolve_downstream_ref(&mut self, downstream: &HashMap<String, Vec<VariableMap>>) -> Result<(), ReamError> {
+        for key in &self.ref_keys {
+            let (ref_class, ref_key) = match self.variables.get(key) {
+                Some(v) => {
+                    match v.get_base() {
+                        ValueBase::Ref(class, key) => (class, key),
+                        _ => unreachable!(), // TODO: un!
+                    }
+                }
+                _ => unreachable!(), // TODO: un!
+            };
+            let value = match downstream.get(&ref_class) {
+                Some(list) => {
+                    let items = list.iter()
+                        .map(|hm| hm.get(&ref_key).unwrap().clone()) // TODO: clone!
+                        .collect::<Vec<Value>>();
+
+                    let (value_base, typ) = List::set_list(items);
+                    let value = Value::new(
+                        value_base,
+                        String::from(""),
+                        typ,
+                    );
+
+                    value
+                },
+                None => return Err(ReamError::ReferenceError(
+                    ReferenceErrorType::EntryClassNotFound
+                )),
+            };
+            self.variables.insert(key.to_string(), value);
+        }
+        Ok(())
+    }
+
+    pub fn set_ref_key(&mut self, keys: Vec<String>) {
+        self.ref_keys = keys;
+    }
+
+    pub fn ref_keys(&self) -> Vec<String> {
+        self.ref_keys.clone()
     }
 
     pub fn get_schema(&self) -> EntrySchema {
@@ -188,6 +227,10 @@ impl Value {
         &self.typ
     }
 
+    pub fn get_base(&self) -> ValueBase {
+        self.value.clone()
+    }
+
     pub fn get_value(&self) -> String {
         self.value.to_string()
     }
@@ -254,8 +297,8 @@ impl ValueBase {
         ValueBase::List(Box::new(list))
     }
 
-    pub fn new_ref(reference: Option<String>) -> Self {
-        Self::Ref(reference)
+    pub fn new_ref(class: String, key: String) -> Self {
+        Self::Ref(class, key)
     }
 
 }
@@ -263,7 +306,7 @@ impl ValueBase {
 impl List {
     pub fn new(typ: ValueType, first_item: Value) -> Self {
         Self {
-            item_type: typ,
+            item_typ: typ,
             items: vec![first_item],
         }
     }
@@ -273,7 +316,7 @@ impl List {
     }
 
     pub fn item_type(&self) -> &ValueType {
-        &self.item_type
+        &self.item_typ
     }
 
     pub fn items_as_string(&self) -> String {
@@ -282,6 +325,13 @@ impl List {
             .map(|item| item.get_value())
             .collect::<Vec<String>>()
             .join(";")
+    }
+
+    pub fn set_list(items: Vec<Value>) -> (ValueBase, ValueType) {
+        let (_, typ) = items[0].get_base_and_typ();
+        let item_typ = ValueType::List(Box::new(typ.clone())); // TODO: clone!
+        let list = Self { item_typ, items };
+        (ValueBase::List(Box::new(list)), typ)
     }
 }
 

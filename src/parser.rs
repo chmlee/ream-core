@@ -117,6 +117,10 @@ impl<'source> Parser<'source> {
         // update upstream
         self.upstream.insert(entry.class(), entry.variable_map());
 
+        // move unresolved ref keys from parser to entry
+        entry.set_ref_key(self.ref_keys_buffer.clone()); // TODO: clone!
+        self.ref_keys_buffer = Vec::new();
+
         // loop for subentries
         while let Some(Token(TokenType::Header(next_level), _, _)) = self.scanner.peek_token()? {
             if next_level.to_owned() == self.current_level + 1 {
@@ -139,6 +143,7 @@ impl<'source> Parser<'source> {
         }
 
         // downstream reference
+        entry.resolve_downstream_ref(&self.downstream)?;
 
         // cleanup
 
@@ -151,15 +156,7 @@ impl<'source> Parser<'source> {
             None => unreachable!(),
         };
         self.upstream.remove(&entry.class());
-
         self.insert_downstream(entry.class().clone(), variable_map.clone());
-
-        println!("{:#?}", &entry);
-        println!("---");
-        println!("{:#?}", &self.upstream);
-        println!("---");
-        println!("{:#?}", &self.downstream);
-        println!("---------");
 
 
         Ok(Some(entry))
@@ -225,9 +222,9 @@ impl<'source> Parser<'source> {
                         match value_base {
                             // unresolved reference will be pushed to ref_key_buffer
                             // and checked for downstream reference
-                            ValueBase::Ref(None) => {
+                            ValueBase::Ref(c, k) => {
                                 self.push_ref_key(key.clone());
-                                (value_base, typ)
+                                (ValueBase::new_ref(c, k), typ)
                             },
                             _ => (value_base, typ),
                         }
@@ -253,22 +250,21 @@ impl<'source> Parser<'source> {
             match self.upstream.get(*class) {
                 Some(variable_map) => match variable_map.get(*key) {
                     Some(s) => Ok(s.get_base_and_typ()),
-                    None => {
-                        match self.parse_direction {
-                            Direction::Down => Ok((
-                                    ValueBase::new_ref(None),
-                                    ValueType::Ref,
-                            )),
-                            Direction::Up => Err(ReamError::ReferenceError(
-                                ReferenceErrorType::VariableKeyNotFound,
-                            )),
-                        }
-                    }
+                    None => Err(ReamError::ReferenceError(
+                        ReferenceErrorType::VariableKeyNotFound,
+                    )),
                 },
-                None => {
-                    return Err(ReamError::ReferenceError(
+                None => match self.parse_direction {
+                    Direction::Down => Ok((
+                            ValueBase::new_ref(
+                                (*class).to_string(),
+                                (*key).to_string(),
+                            ),
+                            ValueType::Ref,
+                    )),
+                    Direction::Up => Err(ReamError::ReferenceError(
                         ReferenceErrorType::EntryClassNotFound,
-                    ));
+                    )),
                 }
             }
         } else {

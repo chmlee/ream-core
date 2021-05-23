@@ -2,10 +2,10 @@
 - key1: 1
 
 ## LevelTwo
-- key2: 2
+- key2 (ref): LevelThree$key1
 
 ### LevelThree
-- key3: 3.1
+- key3: a
 
 ### LevelThree
-- key3: 3.2
+- key3: b
