@@ -1,6 +1,6 @@
 pub mod error;
 pub mod parser;
-pub mod ream;
+pub mod object;
 pub mod scanner;
 
 pub use parser::*;

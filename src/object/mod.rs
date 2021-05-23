@@ -1,11 +1,10 @@
 use crate::error::*;
+mod raw;
 
 use std::collections::HashMap;
 use std::fmt;
 
 use serde::{Deserialize, Serialize};
-
-pub type VariableMap = HashMap<String, Value>;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Entry {
@@ -21,9 +20,32 @@ pub struct Entry {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct VariableMap {
+    map: HashMap<String, Value>
+}
+
+impl VariableMap {
+    pub fn new() -> Self {
+        Self {
+            map: HashMap::new(),
+        }
+    }
+
+    pub fn get(&self, key: &String) -> Option<&Value> {
+        self.map.get(key)
+    }
+
+    pub fn insert(&mut self, key: String, value: Value) -> Option<Value> {
+        self.map.insert(key, value)
+    }
+}
+
+
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Value {
     value: ValueBase,
-    annotation: String,
+    annotation: Option<String>,
     typ: ValueType,
 }
 
@@ -61,7 +83,7 @@ impl Entry {
             parent_class,
             level,
 
-            variables: HashMap::new(),
+            variables: VariableMap::new(),
             subentries: vec![],
 
             keys: Vec::new(),
@@ -89,7 +111,7 @@ impl Entry {
                     let (value_base, typ) = List::set_list(items);
                     let value = Value::new(
                         value_base,
-                        String::from(""),
+                        None,
                         typ,
                     );
 
@@ -215,7 +237,7 @@ impl Entry {
 }
 
 impl Value {
-    pub fn new(value: ValueBase, annotation: String, typ: ValueType) -> Self {
+    pub fn new(value: ValueBase, annotation: Option<String>, typ: ValueType) -> Self {
         Self {
             value,
             annotation,
@@ -229,6 +251,10 @@ impl Value {
 
     pub fn get_base(&self) -> ValueBase {
         self.value.clone()
+    }
+
+    pub fn get_annotation(&self) -> Option<String> {
+        self.annotation.clone()
     }
 
     pub fn get_value(&self) -> String {
@@ -335,26 +361,20 @@ impl List {
     }
 }
 
-impl fmt::Display for ValueBase {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let string = match self {
-            // TODO: clone!
-            Self::Str(s) => s.clone(),
-            Self::Num(s) => s.clone(),
-            Self::Bool(s) => s.clone(),
-            Self::List(list) => list.items_as_string(),
-            _ => "unknown".to_string(),
-        };
-        write!(f, "{}", string)
-    }
-}
+// impl fmt::Display for ValueBase {
+//     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+//         let string = match self {
+//             // TODO: clone!
+//             Self::Str(s) => s.clone(),
+//             Self::Num(s) => s.clone(),
+//             Self::Bool(s) => s.clone(),
+//             Self::List(list) => list.items_as_string(),
+//             _ => "unknown".to_string(),
+//         };
+//         write!(f, "{}", string)
+//     }
+// }
 
-impl fmt::Display for Value {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let s = self.value.clone();
-        write!(f, "{}", s)
-    }
-}
 
 fn is_bool(value: &str) -> bool {
     match value {

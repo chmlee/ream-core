@@ -1,5 +1,5 @@
 use crate::error::*;
-use crate::ream::*;
+use crate::object::*;
 use crate::scanner::*;
 
 use std::collections::{BTreeMap, HashMap, VecDeque};
@@ -248,7 +248,7 @@ impl<'source> Parser<'source> {
 
         if let [class, key] = &v[..] {
             match self.upstream.get(*class) {
-                Some(variable_map) => match variable_map.get(*key) {
+                Some(variable_map) => match variable_map.get(&key.to_string()) {
                     Some(s) => Ok(s.get_base_and_typ()),
                     None => Err(ReamError::ReferenceError(
                         ReferenceErrorType::VariableKeyNotFound,
@@ -315,16 +315,16 @@ impl<'source> Parser<'source> {
         Ok((value_base, typ))
     }
 
-    pub fn parse_annotation(&mut self) -> Result<String, ReamError> {
+    pub fn parse_annotation(&mut self) -> Result<Option<String>, ReamError> {
         match self.scanner.peek_token()? {
             Some(Token(TokenType::Block(_), _, _)) => {
                 self.scanner.take_token()?; // consume Block
                 match self.scanner.take_token()? {
-                    Some(Token(TokenType::Annotation(s), _, _)) => Ok(s),
+                    Some(Token(TokenType::Annotation(s), _, _)) => Ok(Some(s)),
                     _ => unreachable!(),
                 }
             }
-            _ => Ok(String::from("")),
+            _ => Ok(None),
         }
     }
 

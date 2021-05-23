@@ -1,16 +1,18 @@
 mod error;
 mod parser;
-mod ream;
+mod object;
 mod scanner;
 
 use crate::parser::*;
 use crate::scanner::*;
+use crate::object::*;
 use clap::{App, Arg};
 use std::fs::File;
 use std::io::Write;
 use std::{env, fs};
 
 fn main() {
+
     let matches = App::new("REAM Core")
         .version("0.4.0")
         .author("Chih-Ming Louis Lee <louis@chihminglee.com>")
@@ -74,6 +76,11 @@ fn main() {
         let output_text = match matches.value_of("format") {
             Some(f) => {
                 let result = parser.parse_entry().unwrap();
+                // debug
+                println!("-----");
+                println!("{:#}", result.clone().unwrap());
+                println!("-----");
+                // debug
                 match f {
                     "AST" => result.unwrap().to_ast_str().unwrap(),
                     "CSV" => result.unwrap().to_csv_str().unwrap(),

@@ -1,3 +1,13 @@
+[tasks.csv]
+script = '''
+cargo run -- --input ./example/test.md --output test.csv --format CSV -p
+'''
+
+[tasks.ast]
+script = '''
+cargo run -- --input ./example/test.md --output test.json --format AST -p
+'''
+
 [tasks.wasm_build]
 script = '''
 wasm-pack build --target web
