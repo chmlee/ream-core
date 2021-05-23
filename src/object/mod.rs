@@ -1,5 +1,7 @@
-use crate::error::*;
 mod raw;
+mod csv;
+
+use crate::error::*;
 
 use std::collections::HashMap;
 use std::fmt;
@@ -153,9 +155,8 @@ impl Entry {
     pub fn get_variable_values(&self) -> Vec<String> {
         let mut output: Vec<String> = Vec::new();
         for key in self.keys.clone() {
-            // TODO: clone!
             let item = self.value(&key);
-            let item_string = item.to_string();
+            let item_string = item.get_raw();
             output.push(item_string);
         }
         output
@@ -188,42 +189,6 @@ impl Entry {
         }
     }
 
-    // TODO: must exist a better way to write this >:(
-    pub fn flatten_entry(&self) -> Vec<Vec<String>> {
-        let parent = self.get_variable_values();
-        if self.subentries.is_empty() {
-            // terminal node
-            vec![parent]
-        } else {
-            // contains subentries
-            let subentries = self.subentries.to_owned();
-            let mut children: Vec<Vec<String>> = vec![];
-            for subentry in subentries {
-                let items = subentry.flatten_entry();
-                for item in items {
-                    children.push(item);
-                }
-            }
-            let mut result: Vec<Vec<String>> = vec![];
-            for child in children {
-                result.push([parent.to_owned(), child].concat());
-            }
-            result
-        }
-    }
-
-    pub fn to_csv_list(&self) -> Result<Vec<Vec<String>>, ReamError> {
-        let rows = self.flatten_entry();
-        Ok(rows)
-    }
-
-    pub fn to_csv_str(&self) -> Result<String, ReamError> {
-        let rows = self.flatten_entry();
-        let raw = rows
-            .iter()
-            .fold(String::new(), |acc, row| acc + &row.join(",") + "\n");
-        Ok(raw)
-    }
 
     pub fn to_ast_str_pretty(&mut self) -> Result<String, ReamError> {
         let raw = serde_json::to_string_pretty(&self).unwrap();
@@ -263,6 +228,10 @@ impl Value {
 
     pub fn get_base_and_typ(&self) -> (ValueBase, ValueType) {
         (self.value.clone(), self.typ.clone()) // TODO: clone!
+    }
+
+    pub fn get_raw(&self) -> String {
+        self.value.get_raw()
     }
 }
 
@@ -325,6 +294,17 @@ impl ValueBase {
 
     pub fn new_ref(class: String, key: String) -> Self {
         Self::Ref(class, key)
+    }
+
+    pub fn get_raw(&self) -> String {
+        match self {
+            Self::Str(s) => s.to_string(),
+            Self::Num(s) => s.to_string(),
+            Self::Bool(s) => s.to_string(),
+            Self::Unknown(s) => s.to_string(),
+            Self::List(list) => list.items_as_string(),
+            Self::Ref(_, _) => unreachable!(),
+        }
     }
 
 }
