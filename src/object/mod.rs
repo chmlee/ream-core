@@ -99,10 +99,10 @@ impl Entry {
                 Some(v) => {
                     match v.get_base() {
                         ValueBase::Ref(class, key) => (class, key),
-                        _ => unreachable!(), // TODO: un!
+                        _ => return Err(ReamError::Placeholder), // TODO: un!
                     }
                 }
-                _ => unreachable!(), // TODO: un!
+                _ => return Err(ReamError::Placeholder), // TODO: un!
             };
             let value = match downstream.get(&ref_class) {
                 Some(list) => {
@@ -282,9 +282,9 @@ impl ValueBase {
 
             ValueType::Str => return Ok((Self::Str(val), typ)),
 
-            ValueType::List(t) => unreachable!(),
+            ValueType::List(t) => return Err(ReamError::Placeholder),
 
-            _ => unreachable!(),
+            _ => return Err(ReamError::Placeholder),
         }
     }
 
@@ -303,7 +303,7 @@ impl ValueBase {
             Self::Bool(s) => s.to_string(),
             Self::Unknown(s) => s.to_string(),
             Self::List(list) => list.items_as_string(),
-            Self::Ref(_, _) => unreachable!(),
+            Self::Ref(_, _) => "UnreachablePlaceholder".to_string(),
         }
     }
 
