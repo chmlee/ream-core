@@ -8,6 +8,7 @@ pub enum ReamError {
     ReferenceError(ReferenceErrorType),
     SchemaError(SchemaErrorType),
     DuplicateKeys, // TODO: better error classification
+    Placeholder,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

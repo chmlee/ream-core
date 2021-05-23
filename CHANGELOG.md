@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.1] - 2021-05-23
+### Added
+- Add downstream referencing
+- Add schema validator
+- Implement `Display` trait
+
+### Changed
+- Untype `ref`
+
 ## [0.4.0] - 2021-05-21
 ### Added
 - Add upstream referencing

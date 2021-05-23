@@ -14,7 +14,7 @@ use std::{env, fs};
 fn main() {
 
     let matches = App::new("REAM Core")
-        .version("0.4.0")
+        .version("0.4.1")
         .author("Chih-Ming Louis Lee <louis@chihminglee.com>")
         .about("Ream encoder and decoder")
         .arg(

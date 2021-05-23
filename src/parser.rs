@@ -65,12 +65,12 @@ impl<'source> Parser<'source> {
         self.class_history.pop();
     }
 
-    pub fn current_class(&self) -> &String {
-        match self.class_history.last() {
-            Some(c) => c,
-            None => unreachable!(),
-        }
-    }
+    // pub fn current_class(&self) -> &String {
+    //     match self.class_history.last() {
+    //         Some(c) => c,
+    //         None => unreachable!(),
+    //     }
+    // }
 
     pub fn parse_header(&mut self) -> Result<usize, ReamError> {
         let level = match self.scanner.take_token()? {
@@ -153,7 +153,7 @@ impl<'source> Parser<'source> {
         // move current entry from upstream to downstream
         let variable_map = match self.upstream.get(&entry.class()) {
             Some(map) => map.clone(),
-            None => unreachable!(),
+            None => return Err(ReamError::Placeholder),
         };
         self.upstream.remove(&entry.class());
         self.insert_downstream(entry.class().clone(), variable_map.clone());
@@ -321,7 +321,7 @@ impl<'source> Parser<'source> {
                 self.scanner.take_token()?; // consume Block
                 match self.scanner.take_token()? {
                     Some(Token(TokenType::Annotation(s), _, _)) => Ok(Some(s)),
-                    _ => unreachable!(),
+                    _ => return Err(ReamError::Placeholder),
                 }
             }
             _ => Ok(None),
@@ -334,7 +334,7 @@ impl<'source> Parser<'source> {
             Some(Token(TokenType::ValueType(_), _, _)) => {
                 let t = match self.scanner.take_token()? {
                     Some(Token(TokenType::ValueType(t), _, _)) => t,
-                    _ => unreachable!(),
+                    _ => return Err(ReamError::Placeholder),
                 };
                 t
             }

@@ -341,7 +341,7 @@ impl<'source> Scanner<'source> {
                     self.update_source(rest);
                     new_type_str.push(*b as char);
                 }
-                _ => unreachable!(),
+                _ => return Err(ReamError::Placeholder),
             }
         }
     }
