@@ -155,9 +155,13 @@ impl Entry {
     pub fn get_variable_values(&self) -> Vec<String> {
         let mut output: Vec<String> = Vec::new();
         for key in self.keys.clone() {
-            let item = self.value(&key);
-            let item_string = item.get_raw();
-            output.push(item_string);
+            match self.value(&key) {
+                Some(item) => {
+                    let item_string = item.get_raw();
+                    output.push(item_string);
+                },
+                None => {}
+            }
         }
         output
     }
@@ -182,11 +186,8 @@ impl Entry {
         }
     }
 
-    pub fn value(&self, key: &String) -> Value {
-        match self.variables.get(key) {
-            Some(value) => value.clone(), // TODO: clone!
-            None => unreachable!(),       // TODO: un!
-        }
+    pub fn value(&self, key: &String) -> Option<&Value> {
+        self.variables.get(key)
     }
 
 
