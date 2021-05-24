@@ -1,12 +1,19 @@
-# LevelOne
-- key: value
-- list:
-  * 1
-  * 3
-  * 4
+# Country
+- name: Belgium
+- capital: Brussels
+- population: 11433256
+  > data from 2019; retrieved from World Bank
+- euro_zone: TRUE
+  > joined in 1999
 
-## LevelTwo
-- k (ref): LevelOne$key
+## Language
+- name: Dutch
+- size: 0.59
 
-## LevelTwo
-- k (ref): LevelOne$key
+## Language
+- name: French
+- size: 0.4
+
+## Language
+- name: German
+- size (

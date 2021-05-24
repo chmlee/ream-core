@@ -76,11 +76,6 @@ fn main() {
         let output_text = match matches.value_of("format") {
             Some(f) => {
                 let result = parser.parse_entry().unwrap();
-                // debug
-                println!("-----");
-                println!("{:#}", result.clone().unwrap());
-                println!("-----");
-                // debug
                 match f {
                     "AST" => result.unwrap().to_ast_str().unwrap(),
                     "CSV" => result.unwrap().to_csv_str().unwrap(),
