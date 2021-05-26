@@ -75,11 +75,21 @@ fn main() {
 
         let output_text = match matches.value_of("format") {
             Some(f) => {
-                let result = parser.parse_entry().unwrap();
-                match f {
-                    "AST" => result.unwrap().to_ast_str().unwrap(),
-                    "CSV" => result.unwrap().to_csv_str().unwrap(),
-                    _ => panic!("Output format not supported"),
+                match parser.parse_entry() {
+                    Ok(Some(mut e)) => {
+                        match f {
+                            "AST" => e.to_ast_str().unwrap(),
+                            "CSV" => e.to_csv_str().unwrap(),
+                            "RAW" => e.to_string(),
+                            _ => panic!("output format not supported"),
+                        }
+                    },
+                    Err(e) => {
+                        println!("{:?}", e);
+                        format!("{:?}", e)
+                    },
+                    Ok(None) => panic!("None"),
+
                 }
             }
             _ => panic!("Missing output format"),
