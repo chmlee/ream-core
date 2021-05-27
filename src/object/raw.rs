@@ -11,23 +11,24 @@ impl fmt::Display for Entry {
             "{header} {class}\n",
             header = header,
             class = class,
-        );
+        )?;
         for key in &self.keys {
             let value = match self.variables.get(&key.to_string()) {
                 Some(v) =>  v,
                 None => unreachable!(),
             };
+            println!("123");
             write!(
                 f,
                 "- {key} ({typ}): {value}\n",
                 key = key,
                 typ = value.typ,
                 value = value,
-            );
+            )?;
         }
 
         for subentry in &self.subentries {
-            write!(f, "\n{}", subentry);
+            write!(f, "\n{}", subentry)?;
         }
 
         fmt::Result::Ok(())
@@ -45,7 +46,8 @@ impl fmt::Display for ValueType {
             Self::List(t) => format!("list {}", t.to_string()),
             Self::Unknown => unreachable!(),
         };
-        write!(f, "{}", typ)
+        write!(f, "{}", typ)?;
+        fmt::Result::Ok(())
     }
 }
 
@@ -59,7 +61,8 @@ impl fmt::Display for ValueBase {
             Self::Unknown(_) => unreachable!(),
             Self::Ref(_, _) => unreachable!(),
         };
-        write!(f, "{}", value)
+        write!(f, "{}", value)?;
+        fmt::Result::Ok(())
     }
 }
 
@@ -70,16 +73,17 @@ impl fmt::Display for List {
                 f,
                 "\n  * {item}",
                 item = item,
-            );
+            )?;
         }
-        write!(f, "")
+        write!(f, "")?;
+        fmt::Result::Ok(())
     }
 
 }
 
 impl fmt::Display for Value {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.value);
+        write!(f, "{}", self.value)?;
         match &self.annotation {
             Some(ann) => {
                 let indent_num = match &self.typ {
@@ -92,9 +96,10 @@ impl fmt::Display for Value {
                     "\n{indent}> {annotation}",
                     indent = indent,
                     annotation = ann,
-                )
+                )?;
             },
-            None => fmt::Result::Ok(()),
+            None => {},
         }
+        fmt::Result::Ok(())
     }
 }

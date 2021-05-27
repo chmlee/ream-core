@@ -5,7 +5,6 @@ mod ast;
 use crate::error::*;
 
 use std::collections::HashMap;
-use std::fmt;
 
 use serde::{Deserialize, Serialize};
 
@@ -216,7 +215,7 @@ impl Value {
     }
 
     pub fn get_value(&self) -> String {
-        self.value.to_string()
+        self.value.get_raw()
     }
 
     pub fn get_base_and_typ(&self) -> (ValueBase, ValueType) {
