@@ -106,9 +106,17 @@ impl Entry {
             };
             let value = match downstream.get(&ref_class) {
                 Some(list) => {
-                    let items = list.iter()
-                        .map(|hm| hm.get(&ref_key).unwrap().clone()) // TODO: clone!
-                        .collect::<Vec<Value>>();
+                    let mut items: Vec<Value> = Vec::new();
+                    for item in list {
+                        let new_value = match item.get(&ref_key) {
+                            Some(s) => s.clone(),
+                            None => return Err(ReamError::ReferenceError(ReferenceErrorType::VariableKeyNotFound)),
+                        };
+                        items.push(new_value);
+                    }
+                    // let items = list.iter()
+                    //     .map(|hm| hm.get(&ref_key).unwrap().clone()) // TODO: clone!
+                    //     .collect::<Vec<Value>>();
 
                     let (value_base, typ) = List::set_list(items);
                     let value = Value::new(

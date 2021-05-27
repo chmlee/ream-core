@@ -84,7 +84,7 @@ fn main() {
                             _ => panic!("output format not supported"),
                         }
                     },
-                    Err(e) => panic!(e),
+                    Err(e) => format!("{:?}", e),
                     Ok(None) => panic!("None"),
 
                 }

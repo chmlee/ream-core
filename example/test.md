@@ -1,5 +1,19 @@
 # Country
 - name: Belgium
+- capital: Brussels
+- population: 11433256
+  > data from 2019; retrieved from World Bank
+- euro_zone (ref): Language$
+  > joined in 1999
 
 ## Language
-- country (ref): Country$
+- name (ref): Country$capital
+- size: 0.59
+
+## Language
+- name: French
+- size: 0.4
+
+## Language
+- name: German
+- size: 0.01
