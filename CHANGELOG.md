@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.2] - 2021-05-23
+### Fixed
+- Fix unreachable code in downstream referencing
+- Fix downstream referencing from type `<T>` to type `List <T>`
+
 ## [0.4.1] - 2021-05-23
 ### Added
 - Add downstream referencing

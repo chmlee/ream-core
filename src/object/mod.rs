@@ -122,7 +122,7 @@ impl Entry {
                     let value = Value::new(
                         value_base,
                         None,
-                        typ,
+                        ValueType::List(Box::new(typ)),
                     );
 
                     value
