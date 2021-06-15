@@ -23,12 +23,14 @@ pub struct Entry {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct VariableMap {
+    keys: Vec<String>,
     map: HashMap<String, Value>
 }
 
 impl VariableMap {
     pub fn new() -> Self {
         Self {
+            keys: Vec::new(),
             map: HashMap::new(),
         }
     }

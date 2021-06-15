@@ -3,11 +3,11 @@
 - capital: Brussels
 - population: 11433256
   > data from 2019; retrieved from World Bank
-- euro_zone (ref): Language$
+- euro_zone: 1
   > joined in 1999
 
 ## Language
-- name (ref): Country$capital
+- name: French
 - size: 0.59
 
 ## Language
