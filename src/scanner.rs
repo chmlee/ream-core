@@ -32,7 +32,7 @@ pub struct Marker {
 impl Marker {
     pub fn new(line: usize, col: usize) -> Self {
         Marker { line, col }
-    }
+   }
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
