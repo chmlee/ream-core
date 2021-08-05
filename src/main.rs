@@ -2,6 +2,7 @@ mod error;
 mod parser;
 mod object;
 mod scanner;
+mod decorator;
 
 use crate::parser::*;
 use crate::scanner::*;

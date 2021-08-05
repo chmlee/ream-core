@@ -8,6 +8,7 @@ pub enum ReamError {
     ReferenceError(ReferenceErrorType),
     SchemaError(SchemaErrorType),
     DuplicateKeys, // TODO: better error classification
+    DecoratorError,
     Placeholder,
 }
 
@@ -58,6 +59,7 @@ pub enum ScanErrorType {
     MissingClass,
     MissingEOL,
     MissingColon,
+    MissingDecorator,
     InvalidType,
     WrongHeaderLevel,
 }

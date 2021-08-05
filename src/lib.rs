@@ -2,6 +2,7 @@ pub mod error;
 pub mod parser;
 pub mod object;
 pub mod scanner;
+pub mod decorator;
 
 pub use parser::*;
 pub use scanner::*;

@@ -1,5 +1,6 @@
 use crate::error::*;
 use crate::object::*;
+use crate::decorator::*;
 
 use std::collections::VecDeque;
 use std::{fmt, str};
@@ -51,6 +52,9 @@ pub enum TokenType {
     Colon,
     Dash,
     Star,
+
+    At(usize),
+    Decorator(String),
 }
 
 #[derive(Debug, Clone)]
@@ -104,13 +108,24 @@ impl<'source> Scanner<'source> {
 
         let Marker { line, col } = self.get_loc();
         let col = match &tt {
+            // symbol
             TokenType::Dash | TokenType::Colon => col,
-            TokenType::Header(n) => col - n + 1,
+
+            // level
+            TokenType::Header(n)
+            | TokenType::At(n) => col - n + 1,
+
+            // string-like tokens
             TokenType::Class(s)
+            | TokenType::Decorator(s)
             | TokenType::Key(s)
             | TokenType::Value(s)
             | TokenType::Annotation(s) => col - s.len() + 1,
+
+            // fixed-size token, with `size` implemented
             TokenType::ValueType(t) => col - t.size() - 1,
+
+            // Placeholder
             _ => col,
         };
         let start = Marker::new(line, col);
@@ -198,10 +213,62 @@ impl<'source> Scanner<'source> {
             b'-' => self.scan_line_variable()?,
             b'>' => self.scan_line_annotation()?,
             b'*' => self.scan_line_list_item()?,
+            b'@' => self.scan_line_decorator()?,
             _ => return Err(ReamError::ScanError(ScanErrorType::InvalidToken)),
         }
 
         self.end_of_line()?;
+
+        Ok(())
+    }
+
+    pub fn scan_line_decorator(&mut self) -> Result<(), ReamError> {
+        self.scan_token_at()?;
+        self.skip_whitespaces(1)?;
+        self.scan_token_decorator()?;
+
+        Ok(())
+    }
+
+    pub fn scan_token_decorator(&mut self) -> Result<(), ReamError> {
+        let mut name = String::new();
+        loop {
+            match self.source {
+                [b'\n', ref _rest @ ..] => {
+                    break;
+                }
+                [b, ref rest @ ..] => {
+                    name.push(*b as char);
+                    self.update_source(rest);
+                }
+                _ => break,
+            }
+        }
+
+        if name.is_empty() {
+            return Err(ReamError::ScanError(ScanErrorType::MissingDecorator));
+        }
+
+        self.push_token(TokenType::Decorator(name));
+
+        Ok(())
+    }
+
+    pub fn scan_token_at(&mut self) -> Result<(), ReamError> {
+        let mut count = 1;
+        loop {
+            match self.source {
+                [b'@', ref rest @ ..] => {
+                    count += 1;
+                    self.update_source(rest);
+                }
+                [b' ', ..] => break,
+                [b'\n', ..] => break,
+                // TODO: other?
+                _ => return Err(ReamError::ScanError(ScanErrorType::InvalidToken)),
+            }
+        }
+        self.push_token(TokenType::At(count));
 
         Ok(())
     }
@@ -863,5 +930,28 @@ mod tests {
             ]
         )
 
+    }
+
+    #[test]
+    fn decorator() {
+        //          12345678
+        let text = "@ IGNORE";
+        let mut scanner = Scanner::new(&text);
+        let _ = scanner.scan_line();
+        assert_eq!(
+            scanner.buffer,
+            vec![
+                Token(
+                    TokenType::At(1),
+                    Marker { line: 1, col: 1 },
+                    Marker { line: 1, col: 1 }
+                ),
+                Token(
+                    TokenType::Decorator("IGNORE".to_string()),
+                    Marker { line: 1, col: 3 },
+                    Marker { line: 1, col: 8 }
+                ),
+            ]
+        )
     }
 }
