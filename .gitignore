@@ -6,3 +6,4 @@
 
 # wasm target
 /pkg
+/node_modules/*
