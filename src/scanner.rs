@@ -17,11 +17,11 @@ impl fmt::Debug for Token {
     }
 }
 
-impl Token {
-    pub fn new(tt: TokenType, p0: Marker, p1: Marker) -> Self {
-        Self(tt, p0, p1)
-    }
-}
+// impl Token {
+//     pub fn new(tt: TokenType, p0: Marker, p1: Marker) -> Self {
+//         Self(tt, p0, p1)
+//     }
+// }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub struct Marker {
@@ -488,318 +488,380 @@ impl<'source> Scanner<'source> {
     }
 }
 
-// #[cfg(test)]
-// mod tests {
+#[cfg(test)]
+mod tests {
 
-//     use super::*;
+    use super::*;
 
-//     #[test]
-//     fn header_line() {
-//         //          1234567
-//         let text = "# Title";
-//         let mut scanner = Scanner::new(&text);
-//         let _ = scanner.scan_line();
-//         assert_eq!(
-//             scanner.buffer,
-//             vec![
-//                 Token(
-//                     TokenType::Header(1),
-//                     Marker { line: 1, col: 1 },
-//                     Marker { line: 1, col: 1 }
-//                 ),
-//                 Token(
-//                     TokenType::Class("Title".to_string()),
-//                     Marker { line: 1, col: 3 },
-//                     Marker { line: 1, col: 7 }
-//                 ),
-//             ]
-//         )
-//     }
+    #[test]
+    fn header() {
+        //          1234567
+        let text = "# Title";
+        let mut scanner = Scanner::new(&text);
+        let _ = scanner.scan_line();
+        assert_eq!(
+            scanner.buffer,
+            vec![
+                Token(
+                    TokenType::Header(1),
+                    Marker { line: 1, col: 1 },
+                    Marker { line: 1, col: 1 }
+                ),
+                Token(
+                    TokenType::Class("Title".to_string()),
+                    Marker { line: 1, col: 3 },
+                    Marker { line: 1, col: 7 }
+                ),
+            ]
+        )
+    }
 
-//     #[test]
-//     fn variable_line_string() {
-//         //          0        1
-//         //          123456789012
-//         let text = "- key: value";
-//         let mut scanner = Scanner::new(&text);
-//         let _ = scanner.scan_line();
-//         assert_eq!(
-//             scanner.buffer,
-//             vec![
-//                 Token(
-//                     TokenType::Dash,
-//                     Marker { line: 1, col: 1 },
-//                     Marker { line: 1, col: 1 },
-//                 ),
-//                 Token(
-//                     TokenType::Key("key".to_string()),
-//                     Marker { line: 1, col: 3 },
-//                     Marker { line: 1, col: 5 },
-//                 ),
-//                 Token(
-//                     TokenType::Colon,
-//                     Marker { line: 1, col: 6 },
-//                     Marker { line: 1, col: 6 },
-//                 ),
-//                 Token(
-//                     TokenType::Value("value".to_string()),
-//                     Marker { line: 1, col: 8 },
-//                     Marker { line: 1, col: 12 },
-//                 ),
-//             ]
-//         )
-//     }
+    #[test]
+    fn variable() {
+        //          0        1
+        //          123456789012
+        let text = "- key: value";
+        let mut scanner = Scanner::new(&text);
+        let _ = scanner.scan_line();
+        assert_eq!(
+            scanner.buffer,
+            vec![
+                Token(
+                    TokenType::Dash,
+                    Marker { line: 1, col: 1 },
+                    Marker { line: 1, col: 1 },
+                ),
+                Token(
+                    TokenType::Key("key".to_string()),
+                    Marker { line: 1, col: 3 },
+                    Marker { line: 1, col: 5 },
+                ),
+                Token(
+                    TokenType::Colon,
+                    Marker { line: 1, col: 6 },
+                    Marker { line: 1, col: 6 },
+                ),
+                Token(
+                    TokenType::Value("value".to_string()),
+                    Marker { line: 1, col: 8 },
+                    Marker { line: 1, col: 12 },
+                ),
+            ]
+        )
+    }
 
-//     #[test]
-//     fn varible_line_string_with_type() {
-//         //          0        1
-//         //          1234567890123456789
-//         let text = "- key (str): value";
-//         let mut scanner = Scanner::new(&text);
-//         let _ = scanner.scan_line();
-//         assert_eq!(
-//             scanner.buffer,
-//             vec![
-//                 Token(
-//                     TokenType::Dash,
-//                     Marker { line: 1, col: 1 },
-//                     Marker { line: 1, col: 1 },
-//                 ),
-//                 Token(
-//                     TokenType::Key("key".to_string()),
-//                     Marker { line: 1, col: 3 },
-//                     Marker { line: 1, col: 5 },
-//                 ),
-//                 Token(
-//                     TokenType::ValueType(ValueType::Unit(UnitType::Str)),
-//                     Marker { line: 1, col: 7 },
-//                     Marker { line: 1, col: 11 },
-//                 ),
-//                 Token(
-//                     TokenType::Colon,
-//                     Marker { line: 1, col: 12 },
-//                     Marker { line: 1, col: 12 },
-//                 ),
-//                 Token(
-//                     TokenType::Value("value".to_string()),
-//                     Marker { line: 1, col: 14 },
-//                     Marker { line: 1, col: 18 },
-//                 ),
-//             ]
-//         )
-//     }
+    #[test]
+    fn varible_with_type() {
+        //          0        1
+        //          1234567890123456789
+        let text = "- key (str): value";
+        let mut scanner = Scanner::new(&text);
+        let _ = scanner.scan_line();
+        assert_eq!(
+            scanner.buffer,
+            vec![
+                Token( // -
+                    TokenType::Dash,
+                    Marker { line: 1, col: 1 },
+                    Marker { line: 1, col: 1 },
+                ),
+                Token( // key
+                    TokenType::Key("key".to_string()),
+                    Marker { line: 1, col: 3 },
+                    Marker { line: 1, col: 5 },
+                ),
+                Token( // (str)
+                    TokenType::ValueType(ValueType::Str),
+                    Marker { line: 1, col: 7 },
+                    Marker { line: 1, col: 11 },
+                ),
+                Token( // :
+                    TokenType::Colon,
+                    Marker { line: 1, col: 12 },
+                    Marker { line: 1, col: 12 },
+                ),
+                Token( // value
+                    TokenType::Value("value".to_string()),
+                    Marker { line: 1, col: 14 },
+                    Marker { line: 1, col: 18 },
+                ),
+            ]
+        )
+    }
 
-//     #[test]
-//     fn count_spaces() {
-//         //          0        1
-//         //          12345678901234
-//         let text = " - key : value";
-//         let mut scanner = Scanner::new(&text);
-//         let _ = scanner.scan_line();
-//         assert_eq!(
-//             scanner.buffer,
-//             vec![
-//                 Token(
-//                     TokenType::Dash,
-//                     Marker { line: 1, col: 2 },
-//                     Marker { line: 1, col: 2 },
-//                 ),
-//                 Token(
-//                     TokenType::Key("key".to_string()),
-//                     Marker { line: 1, col: 4 },
-//                     Marker { line: 1, col: 6 },
-//                 ),
-//                 Token(
-//                     TokenType::Colon,
-//                     Marker { line: 1, col: 8 },
-//                     Marker { line: 1, col: 8 },
-//                 ),
-//                 Token(
-//                     TokenType::Value("value".to_string()),
-//                     Marker { line: 1, col: 10 },
-//                     Marker { line: 1, col: 14 },
-//                 ),
-//             ]
-//         )
-//     }
+    #[test]
+    fn count_spaces() {
+        //          0        1
+        //          12345678901234567
+        let text = " - key  :   value";
+        let mut scanner = Scanner::new(&text);
+        let _ = scanner.scan_line();
+        assert_eq!(
+            scanner.buffer,
+            vec![
+                Token( // -
+                    TokenType::Dash,
+                    Marker { line: 1, col: 2 },
+                    Marker { line: 1, col: 2 },
+                ),
+                Token( // key
+                    TokenType::Key("key".to_string()),
+                    Marker { line: 1, col: 4 },
+                    Marker { line: 1, col: 6 },
+                ),
+                Token( // :
+                    TokenType::Colon,
+                    Marker { line: 1, col: 9 },
+                    Marker { line: 1, col: 9 },
+                ),
+                Token( // value
+                    TokenType::Value("value".to_string()),
+                    Marker { line: 1, col: 13 },
+                    Marker { line: 1, col: 17 },
+                ),
+            ]
+        )
+    }
 
-//     #[test]
-//     fn multiple_lines() {
-//         let text = "# Title\n- key: value";
-//         let mut scanner = Scanner::new(&text);
-//         let _ = scanner.scan_line();
-//         let _ = scanner.scan_line();
-//         assert_eq!(
-//             scanner.buffer,
-//             vec![
-//                 Token(
-//                     TokenType::Header(1),
-//                     Marker { line: 1, col: 1 },
-//                     Marker { line: 1, col: 1 }
-//                 ),
-//                 Token(
-//                     TokenType::Class("Title".to_string()),
-//                     Marker { line: 1, col: 3 },
-//                     Marker { line: 1, col: 7 }
-//                 ),
-//                 Token(
-//                     TokenType::Dash,
-//                     Marker { line: 2, col: 1 },
-//                     Marker { line: 2, col: 1 },
-//                 ),
-//                 Token(
-//                     TokenType::Key("key".to_string()),
-//                     Marker { line: 2, col: 3 },
-//                     Marker { line: 2, col: 5 },
-//                 ),
-//                 Token(
-//                     TokenType::Colon,
-//                     Marker { line: 2, col: 6 },
-//                     Marker { line: 2, col: 6 },
-//                 ),
-//                 Token(
-//                     TokenType::Value("value".to_string()),
-//                     Marker { line: 2, col: 8 },
-//                     Marker { line: 2, col: 12 },
-//                 ),
-//             ]
-//         )
-//     }
+    #[test]
+    fn basic_entry() {
+        let text = "# Title\n- key: value";
+        let mut scanner = Scanner::new(&text);
+        let _ = scanner.scan_line();
+        let _ = scanner.scan_line();
+        assert_eq!(
+            scanner.buffer,
+            vec![
+                Token( // #
+                    TokenType::Header(1),
+                    Marker { line: 1, col: 1 },
+                    Marker { line: 1, col: 1 }
+                ),
+                Token( // Title
+                    TokenType::Class("Title".to_string()),
+                    Marker { line: 1, col: 3 },
+                    Marker { line: 1, col: 7 }
+                ),
+                Token( // -
+                    TokenType::Dash,
+                    Marker { line: 2, col: 1 },
+                    Marker { line: 2, col: 1 },
+                ),
+                Token( // key
+                    TokenType::Key("key".to_string()),
+                    Marker { line: 2, col: 3 },
+                    Marker { line: 2, col: 5 },
+                ),
+                Token( // :
+                    TokenType::Colon,
+                    Marker { line: 2, col: 6 },
+                    Marker { line: 2, col: 6 },
+                ),
+                Token( // value
+                    TokenType::Value("value".to_string()),
+                    Marker { line: 2, col: 8 },
+                    Marker { line: 2, col: 12 },
+                ),
+            ]
+        )
+    }
 
-//     #[test]
-//     fn skip_empty_lines() {
-//         let text = "# Title\n\n- key: value";
-//         let mut scanner = Scanner::new(&text);
-//         let _ = scanner.scan_line();
-//         let _ = scanner.scan_line();
-//         assert_eq!(
-//             scanner.buffer,
-//             vec![
-//                 Token(
-//                     TokenType::Header(1),
-//                     Marker { line: 1, col: 1 },
-//                     Marker { line: 1, col: 1 }
-//                 ),
-//                 Token(
-//                     TokenType::Class("Title".to_string()),
-//                     Marker { line: 1, col: 3 },
-//                     Marker { line: 1, col: 7 }
-//                 ),
-//                 Token(
-//                     TokenType::Dash,
-//                     Marker { line: 3, col: 1 },
-//                     Marker { line: 3, col: 1 },
-//                 ),
-//                 Token(
-//                     TokenType::Key("key".to_string()),
-//                     Marker { line: 3, col: 3 },
-//                     Marker { line: 3, col: 5 },
-//                 ),
-//                 Token(
-//                     TokenType::Colon,
-//                     Marker { line: 3, col: 6 },
-//                     Marker { line: 3, col: 6 },
-//                 ),
-//                 Token(
-//                     TokenType::Value("value".to_string()),
-//                     Marker { line: 3, col: 8 },
-//                     Marker { line: 3, col: 12 },
-//                 ),
-//             ]
-//         )
-//     }
+    #[test]
+    fn skip_empty_lines() {
+        let text = "# Title\n\n- key: value";
+        let mut scanner = Scanner::new(&text);
+        let _ = scanner.scan_line();
+        let _ = scanner.scan_line();
+        assert_eq!(
+            scanner.buffer,
+            vec![
+                Token( // #
+                    TokenType::Header(1),
+                    Marker { line: 1, col: 1 },
+                    Marker { line: 1, col: 1 }
+                ),
+                Token( // Title
+                    TokenType::Class("Title".to_string()),
+                    Marker { line: 1, col: 3 },
+                    Marker { line: 1, col: 7 }
+                ),
+                Token( // -
+                    TokenType::Dash,
+                    Marker { line: 3, col: 1 },
+                    Marker { line: 3, col: 1 },
+                ),
+                Token( // key
+                    TokenType::Key("key".to_string()),
+                    Marker { line: 3, col: 3 },
+                    Marker { line: 3, col: 5 },
+                ),
+                Token( // :
+                    TokenType::Colon,
+                    Marker { line: 3, col: 6 },
+                    Marker { line: 3, col: 6 },
+                ),
+                Token( // value
+                    TokenType::Value("value".to_string()),
+                    Marker { line: 3, col: 8 },
+                    Marker { line: 3, col: 12 },
+                ),
+            ]
+        )
+    }
 
-//     #[test]
-//     fn annotation_line() {
-//         //          0        1
-//         //          1234567890123
-//         let text = "> hello world";
-//         let mut scanner = Scanner::new(&text);
-//         let _ = scanner.scan_line();
-//         assert_eq!(
-//             scanner.buffer,
-//             vec![
-//                 Token(
-//                     TokenType::Block(1),
-//                     Marker { line: 1, col: 1 },
-//                     Marker { line: 1, col: 1 }
-//                 ),
-//                 Token(
-//                     TokenType::Annotation("hello world".to_string()),
-//                     Marker { line: 1, col: 3 },
-//                     Marker { line: 1, col: 13 }
-//                 ),
-//             ]
-//         )
-//     }
+    #[test]
+    fn annotation() {
+        //          0        1
+        //          1234567890123
+        let text = "> hello world";
+        let mut scanner = Scanner::new(&text);
+        let _ = scanner.scan_line();
+        assert_eq!(
+            scanner.buffer,
+            vec![
+                Token(
+                    TokenType::Block(1),
+                    Marker { line: 1, col: 1 },
+                    Marker { line: 1, col: 1 }
+                ),
+                Token(
+                    TokenType::Annotation("hello world".to_string()),
+                    Marker { line: 1, col: 3 },
+                    Marker { line: 1, col: 13 }
+                ),
+            ]
+        )
+    }
 
-//     #[test]
-//     fn variable_with_annotation() {
-//         //          0        1    0        1
-//         //          1234567890123 12345678901234567
-//         let text = "- key: value\n> some annotation";
-//         let mut scanner = Scanner::new(&text);
-//         let _ = scanner.scan_line();
-//         let _ = scanner.scan_line();
-//         assert_eq!(
-//             scanner.buffer,
-//             vec![
-//                 Token(
-//                     TokenType::Dash,
-//                     Marker { line: 1, col: 1 },
-//                     Marker { line: 1, col: 1 },
-//                 ),
-//                 Token(
-//                     TokenType::Key("key".to_string()),
-//                     Marker { line: 1, col: 3 },
-//                     Marker { line: 1, col: 5 },
-//                 ),
-//                 Token(
-//                     TokenType::Colon,
-//                     Marker { line: 1, col: 6 },
-//                     Marker { line: 1, col: 6 },
-//                 ),
-//                 Token(
-//                     TokenType::Value("value".to_string()),
-//                     Marker { line: 1, col: 8 },
-//                     Marker { line: 1, col: 12 },
-//                 ),
-//                 Token(
-//                     TokenType::Block(1),
-//                     Marker { line: 2, col: 1 },
-//                     Marker { line: 2, col: 1 }
-//                 ),
-//                 Token(
-//                     TokenType::Annotation("some annotation".to_string()),
-//                     Marker { line: 2, col: 3 },
-//                     Marker { line: 2, col: 17 }
-//                 ),
-//             ]
-//         )
-//     }
+    #[test]
+    fn variable_with_annotation() {
+        //          0        1    0        1
+        //          1234567890123 12345678901234567
+        let text = "- key: value\n> some annotation";
+        let mut scanner = Scanner::new(&text);
+        let _ = scanner.scan_line();
+        let _ = scanner.scan_line();
+        assert_eq!(
+            scanner.buffer,
+            vec![
+                Token(
+                    TokenType::Dash,
+                    Marker { line: 1, col: 1 },
+                    Marker { line: 1, col: 1 },
+                ),
+                Token(
+                    TokenType::Key("key".to_string()),
+                    Marker { line: 1, col: 3 },
+                    Marker { line: 1, col: 5 },
+                ),
+                Token(
+                    TokenType::Colon,
+                    Marker { line: 1, col: 6 },
+                    Marker { line: 1, col: 6 },
+                ),
+                Token(
+                    TokenType::Value("value".to_string()),
+                    Marker { line: 1, col: 8 },
+                    Marker { line: 1, col: 12 },
+                ),
+                Token(
+                    TokenType::Block(1),
+                    Marker { line: 2, col: 1 },
+                    Marker { line: 2, col: 1 }
+                ),
+                Token(
+                    TokenType::Annotation("some annotation".to_string()),
+                    Marker { line: 2, col: 3 },
+                    Marker { line: 2, col: 17 }
+                ),
+            ]
+        )
+    }
 
-//     #[test]
-//     fn list_item() {
-//         //          0
-//         //          12345678
-//         let text = "* item";
-//         let mut scanner = Scanner::new(&text);
-//         let _ = scanner.scan_line();
-//         let _ = scanner.scan_line();
-//         assert_eq!(
-//             scanner.buffer,
-//             vec![
-//                 Token(
-//                     TokenType::Star,
-//                     Marker { line: 1, col: 1 },
-//                     Marker { line: 1, col: 1 },
-//                 ),
-//                 Token(
-//                     TokenType::Value("item".to_string()),
-//                     Marker { line: 1, col: 3 },
-//                     Marker { line: 1, col: 6 },
-//                 ),
-//             ]
-//         )
-//     }
-// }
+    #[test]
+    fn list_item() {
+        //          0
+        //          12345678
+        let text = "* item";
+        let mut scanner = Scanner::new(&text);
+        let _ = scanner.scan_line();
+        let _ = scanner.scan_line();
+        assert_eq!(
+            scanner.buffer,
+            vec![
+                Token(
+                    TokenType::Star,
+                    Marker { line: 1, col: 1 },
+                    Marker { line: 1, col: 1 },
+                ),
+                Token(
+                    TokenType::Value("item".to_string()),
+                    Marker { line: 1, col: 3 },
+                    Marker { line: 1, col: 6 },
+                ),
+            ]
+        )
+    }
+
+    #[test]
+    fn list() {
+        //          1234567  1234567890  1234567890  1234567890
+        let text = "- list:\n  * item 1\n  * item 2\n  * item 3";
+        let mut scanner = Scanner::new(&text);
+        let _ = scanner.scan_line();
+        let _ = scanner.scan_line();
+        let _ = scanner.scan_line();
+        let _ = scanner.scan_line();
+        assert_eq!(
+            scanner.buffer,
+            vec![
+                Token(
+                    TokenType::Dash,
+                    Marker { line: 1, col: 1 },
+                    Marker { line: 1, col: 1 },
+                ),
+                Token(
+                    TokenType::Key("list".to_string()),
+                    Marker { line: 1, col: 3 },
+                    Marker { line: 1, col: 6 },
+                ),
+                Token(
+                    TokenType::Colon,
+                    Marker { line: 1, col: 7 },
+                    Marker { line: 1, col: 7 },
+                ),
+                Token(
+                    TokenType::Star,
+                    Marker { line: 2, col: 3 },
+                    Marker { line: 2, col: 3 },
+                ),
+                Token(
+                    TokenType::Value("item 1".to_string()),
+                    Marker { line: 2, col: 5 },
+                    Marker { line: 2, col: 10 },
+                ),
+                Token(
+                    TokenType::Star,
+                    Marker { line: 3, col: 3 },
+                    Marker { line: 3, col: 3 },
+                ),
+                Token(
+                    TokenType::Value("item 2".to_string()),
+                    Marker { line: 3, col: 5 },
+                    Marker { line: 3, col: 10 },
+                ),
+                Token(
+                    TokenType::Star,
+                    Marker { line: 4, col: 3 },
+                    Marker { line: 4, col: 3 },
+                ),
+                Token(
+                    TokenType::Value("item 3".to_string()),
+                    Marker { line: 4, col: 5 },
+                    Marker { line: 4, col: 10 },
+                ),
+            ]
+        )
+
+    }
+}
