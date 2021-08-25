@@ -954,4 +954,60 @@ mod tests {
             ]
         )
     }
+
+    #[test]
+    fn entry_with_decorator() {
+        //                                      1
+        //          12345678  1234567  123456789012
+        let text = "@ IGNORE\n# Title\n- key: value";
+        let mut scanner = Scanner::new(&text);
+        let _ = scanner.scan_line();
+        let _ = scanner.scan_line();
+        let _ = scanner.scan_line();
+        assert_eq!(
+            scanner.buffer,
+            vec![
+                Token( // @
+                    TokenType::At(1),
+                    Marker { line: 1, col: 1 },
+                    Marker { line: 1, col: 1 }
+                ),
+                Token( // IGNORE
+                    TokenType::Decorator("IGNORE".to_string()),
+                    Marker { line: 1, col: 3 },
+                    Marker { line: 1, col: 8 }
+                ),
+                Token( // #
+                    TokenType::Header(1),
+                    Marker { line: 2, col: 1 },
+                    Marker { line: 2, col: 1 }
+                ),
+                Token( // Title
+                    TokenType::Class("Title".to_string()),
+                    Marker { line: 2, col: 3 },
+                    Marker { line: 2, col: 7 }
+                ),
+                Token( // -
+                    TokenType::Dash,
+                    Marker { line: 3, col: 1 },
+                    Marker { line: 3, col: 1 },
+                ),
+                Token( // key
+                    TokenType::Key("key".to_string()),
+                    Marker { line: 3, col: 3 },
+                    Marker { line: 3, col: 5 },
+                ),
+                Token( // :
+                    TokenType::Colon,
+                    Marker { line: 3, col: 6 },
+                    Marker { line: 3, col: 6 },
+                ),
+                Token( // value
+                    TokenType::Value("value".to_string()),
+                    Marker { line: 3, col: 8 },
+                    Marker { line: 3, col: 12 },
+                ),
+            ]
+        )
+    }
 }

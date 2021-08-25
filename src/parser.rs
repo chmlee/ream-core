@@ -1,6 +1,7 @@
 use crate::error::*;
 use crate::object::*;
 use crate::scanner::*;
+use crate::decorator::{Decorator};
 
 use std::collections::{BTreeMap, HashMap, VecDeque};
 
@@ -90,7 +91,36 @@ impl<'source> Parser<'source> {
         Ok(identifier)
     }
 
+    pub fn parse_decorators(&mut self) -> Result<Option<Vec<Decorator>>, ReamError> {
+        let mut decorators: Vec<Decorator> = vec![];
+
+        // loop through decorators
+        while let Some(Token(TokenType::At(_), _, _)) = self.scanner.peek_token()? {
+            self.scanner.take_token()?; // consume At
+            let decorator = self.parse_decorator()?;
+            decorators.push(decorator)
+        }
+
+        if decorators.is_empty() {
+            Ok(None)
+        } else {
+            Ok(Some(decorators))
+        }
+    }
+
+    pub fn parse_decorator(&mut self) -> Result<Decorator, ReamError> {
+        match self.scanner.take_token()? {
+            Some(Token(TokenType::Decorator(d), _, _)) => Decorator::from(d.clone()), // TODO: clone!
+            _ => Err(ReamError::DecoratorError(DecoratorErrorType::InvalidDecorator)),
+        }
+    }
+
+
+
     pub fn parse_entry(&mut self) -> Result<Option<Entry>, ReamError> {
+
+        // find decorators
+        let decorators = self.parse_decorators()?;
 
         // find entry level
         let level = self.parse_header()?;
@@ -100,8 +130,11 @@ impl<'source> Parser<'source> {
         let class = self.parse_identifier()?;
         self.push_class(class.clone()); // TODO: clone!
 
+        // find parent class
+        let parent_class = self.parent_class();
+
         // init entry
-        let mut entry = Entry::new(class, level, self.parent_class());
+        let mut entry = Entry::new(class, level, parent_class, decorators);
 
         // loop for variables
         while let Some(Token(TokenType::Dash, _, _)) = self.scanner.peek_token()? {
@@ -122,7 +155,8 @@ impl<'source> Parser<'source> {
         self.ref_keys_buffer = Vec::new();
 
         // loop for subentries
-        while let Some(Token(TokenType::Header(next_level), _, _)) = self.scanner.peek_token()? {
+        while let Some(Token(TokenType::Header(next_level), _, _))
+            | Some(Token(TokenType::At(next_level), _, _)) = self.scanner.peek_token()? {
             if next_level.to_owned() == self.current_level + 1 {
                 // child entry
                 self.parse_direction = Direction::Down;
@@ -130,6 +164,7 @@ impl<'source> Parser<'source> {
                     Some(sub) => sub,
                     None => return Err(ReamError::ParseError(ParseErrorType::MissingSubentry)),
                 };
+                // let subentry = self.parse_entry()?;
                 entry.push_subentry(subentry);
             } else if next_level.to_owned() <= self.current_level {
                 // return to parent entry
@@ -159,6 +194,8 @@ impl<'source> Parser<'source> {
         self.insert_downstream(entry.class().clone(), variable_map.clone());
 
 
+        println!("{:?}", entry);
+        println!("-----");
         Ok(Some(entry))
     }
 

@@ -3,6 +3,7 @@ mod csv;
 mod ast;
 
 use crate::error::*;
+use crate::decorator::*;
 
 use std::collections::HashMap;
 
@@ -13,6 +14,8 @@ pub struct Entry {
     class: String,
     level: usize,
     parent_class: Option<String>,
+
+    decorators: Option<Vec<Decorator>>,
 
     variables: VariableMap,
     subentries: Vec<Entry>,
@@ -81,11 +84,13 @@ pub struct List {
 }
 
 impl Entry {
-    pub fn new(class: String, level: usize, parent_class: Option<String>) -> Self {
+    pub fn new(class: String, level: usize, parent_class: Option<String>, decorators: Option<Vec<Decorator>>) -> Self {
         Entry {
             class,
             parent_class,
             level,
+
+            decorators,
 
             variables: VariableMap::new(),
             subentries: vec![],

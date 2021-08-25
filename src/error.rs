@@ -7,8 +7,8 @@ pub enum ReamError {
     TypeError(TypeErrorType),
     ReferenceError(ReferenceErrorType),
     SchemaError(SchemaErrorType),
+    DecoratorError(DecoratorErrorType),
     DuplicateKeys, // TODO: better error classification
-    DecoratorError,
     Placeholder,
 }
 
@@ -62,4 +62,9 @@ pub enum ScanErrorType {
     MissingDecorator,
     InvalidType,
     WrongHeaderLevel,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub enum DecoratorErrorType {
+    InvalidDecorator,
 }
