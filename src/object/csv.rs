@@ -6,10 +6,10 @@ impl Entry {
     pub fn flatten_entry(&self) -> Vec<Vec<String>> {
         let parent = self.get_variable_values();
         if self.subentries.is_empty() {
-            // terminal node
+        // terminal node
             vec![parent]
         } else {
-            // contains subentries
+        // contains subentries
             let subentries = self.subentries.to_owned();
             let mut children: Vec<Vec<String>> = vec![];
             for subentry in subentries {
