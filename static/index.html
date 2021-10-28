@@ -5,6 +5,17 @@
   <title></title>
 </head>
 <body>
-  <script src="./index.js"></script>
+    <script type="module">
+      import init, { ream2csv, ream2ast } from "../pkg/ream.js";
+      init()
+        .then(() => {
+            let a = ream2csv(`
+            # Country
+            - name: Belgium 
+            - capital: Brussel
+            `)
+            console.log(a)
+        });
+      </script>
 </body>
 </html>

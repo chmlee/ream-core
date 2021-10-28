@@ -1,0 +1,16 @@
+{
+  "name": "reamc",
+  "collaborators": [
+    "Chih-Ming Louis Lee <louis@chihminglee.com>"
+  ],
+  "description": null,
+  "version": "0.4.2",
+  "license": null,
+  "repository": null,
+  "files": [
+    "reamc.wasm",
+    "reamc.d.ts"
+  ],
+  "main": "reamc.js",
+  "types": "reamc.d.ts"
+}
