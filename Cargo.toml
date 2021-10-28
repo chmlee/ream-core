@@ -29,6 +29,6 @@ opt-level = 2
 # path = "src/lib.rs"
 crate-type = ["cdylib"]
 
-[[bin]]
-name = "ream"
-path = "src/main.rs"
+# [[bin]]
+# name = "ream"
+# path = "src/main.rs"
