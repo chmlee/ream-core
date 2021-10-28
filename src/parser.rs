@@ -1,5 +1,5 @@
 use crate::error::*;
-use crate::object::*;
+use crate::format::*;
 use crate::scanner::*;
 use crate::decorator::{Decorator};
 
@@ -194,8 +194,6 @@ impl<'source> Parser<'source> {
         self.insert_downstream(entry.class().clone(), variable_map.clone());
 
 
-        println!("{:?}", entry);
-        println!("-----");
         Ok(Some(entry))
     }
 
@@ -395,7 +393,7 @@ impl<'source> Parser<'source> {
 #[cfg(test)]
 mod tests {
 
-    use super::*;
+    // use super::*;
 
     // #[test]
     // fn header_line() {

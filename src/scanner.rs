@@ -1,5 +1,5 @@
 use crate::error::*;
-use crate::object::*;
+use crate::format::*;
 use crate::decorator::*;
 
 use std::collections::VecDeque;
@@ -91,7 +91,7 @@ impl<'source> Scanner<'source> {
     }
 
     pub fn get_source(&self) {
-        println!("{:?}", str::from_utf8(self.source).unwrap());
+        // println!("{:?}", str::from_utf8(self.source).unwrap());
     }
 
     pub fn get_loc(&self) -> Marker {
@@ -542,14 +542,12 @@ impl<'source> Scanner<'source> {
                 self.source = rest
             }
             [] => {
-                println!("end of file");
                 self.eof = true;
             }
             _ => {
                 return Err(ReamError::ScanError(ScanErrorType::MissingEOL));
             }
         }
-        // println!("end of line!");
 
         Ok(())
     }

@@ -63,7 +63,6 @@ pub enum ValueType {
     Bool,
     Unknown,
     List(Box<ValueType>),
-    // Ref(Box<ValueType>),
     Ref,
 }
 

@@ -1,4 +1,4 @@
-use crate::object::{*};
+use crate::format::{*};
 
 use std::fmt;
 
@@ -17,7 +17,6 @@ impl fmt::Display for Entry {
                 Some(v) =>  v,
                 None => unreachable!(),
             };
-            println!("123");
             write!(
                 f,
                 "- {key} ({typ}): {value}\n",

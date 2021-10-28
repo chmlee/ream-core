@@ -1,6 +1,6 @@
 pub mod error;
 pub mod parser;
-pub mod object;
+pub mod format;
 pub mod scanner;
 pub mod decorator;
 

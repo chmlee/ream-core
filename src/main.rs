@@ -1,12 +1,12 @@
 mod error;
 mod parser;
-mod object;
+mod format;
 mod scanner;
 mod decorator;
 
 use crate::parser::*;
 use crate::scanner::*;
-use crate::object::*;
+use crate::format::*;
 use clap::{App, Arg};
 use std::fs::File;
 use std::io::Write;
@@ -110,7 +110,7 @@ fn debug_fun() {
     let file = fs::read_to_string("./example/test.md").unwrap();
     let mut parser = Parser::new(&file);
     let entry = parser.parse_entry().unwrap().unwrap();
-    let result = entry.flatten_entry();
+    // let result = entry.flatten_entry();
 
-    println!("{:?}", result);
+    println!("{:?}", entry);
 }

@@ -24,9 +24,10 @@ opt-level = 2
 
 
 [lib]
-crate-name = "ream"
-crate-type = ["cdylib", "lib"]
-path = "src/lib.rs"
+# crate-name = "ream"
+# crate-type = ["cdylib", "lib"]
+# path = "src/lib.rs"
+crate-type = ["cdylib"]
 
 [[bin]]
 name = "ream"

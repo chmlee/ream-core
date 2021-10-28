@@ -1,4 +1,4 @@
-use crate::object::*;
+use crate::format::*;
 
 impl Entry {
     pub fn to_ast_str_pretty(&mut self) -> Result<String, ReamError> {
