@@ -1,7 +1,7 @@
 use crate::error::*;
 use crate::format::*;
 use crate::scanner::*;
-use crate::decorator::{Decorator};
+use crate::decorator::Decorator;
 
 use std::collections::{BTreeMap, HashMap, VecDeque};
 
@@ -22,7 +22,7 @@ pub struct Parser<'source> {
 enum Direction {
     Down,
     Up,
-}
+} 
 
 impl<'source> Parser<'source> {
     pub fn new(source: &'source str) -> Self {
